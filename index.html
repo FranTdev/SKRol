@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Touch Machine - SK Rol</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for the typewriter and mystical feel -->
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Inter:wght@400;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <main class="container">
+        <header>
+            <h1 class="title">The Touch Machine</h1>
+            <p class="subtitle">Determina tu destino en el Rol de Stephen King</p>
+        </header>
+
+        <section class="controls glass">
+            <div class="input-group">
+                <label for="probability">Probability (%)</label>
+                <input type="number" id="probability" placeholder="0-100" min="0" max="100">
+            </div>
+            <div class="input-group">
+                <label for="power-limit">Power Limit</label>
+                <input type="number" id="power-limit" placeholder="Valor máximo">
+            </div>
+            <button id="activate-btn" class="btn-primary">Activar Máquina</button>
+        </section>
+
+        <section class="results-container">
+            <h2 class="section-title">Habilidades Obtenidas</h2>
+            <div class="table-wrapper glass">
+                <table id="tag-table">
+                    <thead>
+                        <tr>
+                            <th>Rango</th>
+                            <th>Habilidad/Tag</th>
+                            <th>Impacto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tag-list">
+                        <!-- Las filas se generarán dinámicamente -->
+                        <tr class="empty-row">
+                            <td colspan="3">La máquina aún no ha sido activada...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="index.js"></script>
+</body>
+
+</html>

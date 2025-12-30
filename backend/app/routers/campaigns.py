@@ -3,6 +3,8 @@ from ..database import get_db
 from ..models import CampaignCreate
 from typing import List
 
+from ..services import campaign_service
+
 router = APIRouter()
 db = get_db()
 
@@ -28,40 +30,20 @@ def create_campaign(campaign: CampaignCreate):
 
 @router.get("/{user_id}", response_model=List[dict])
 def get_user_campaigns(user_id: str):
-    if db is None:
-        raise HTTPException(status_code=503, detail="Database not connected")
+    return campaign_service.get_user_campaigns_orchestrated(user_id)
 
-    try:
-        # Get campaigns where user is Admin, including admin's username
-        admin_campaigns_resp = (
-            db.table("campaigns")
-            .select("*, admin:users!admin_id(username)")
-            .eq("admin_id", user_id)
-            .execute()
-        ).data
 
-        # Get campaigns where user is Participant
-        participant_resp = (
-            db.table("campaign_participants")
-            .select("campaign_id, campaigns(*, admin:users!admin_id(username))")
-            .eq("user_id", user_id)
-            .execute()
-        ).data
+@router.get("/{campaign_id}/participants/limits")
+def get_participants_limits(campaign_id: str):
+    return campaign_service.get_participants_with_limits(campaign_id)
 
-        participant_campaigns = [
-            p["campaigns"] for p in participant_resp if p.get("campaigns")
-        ]
 
-        # Combine and remove duplicates
-        all_campaign_ids = {c["id"] for c in admin_campaigns_resp}
-        for c in participant_campaigns:
-            if c["id"] not in all_campaign_ids:
-                admin_campaigns_resp.append(c)
-                all_campaign_ids.add(c["id"])
-
-        return admin_campaigns_resp
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@router.patch("/{campaign_id}/participants/{user_id}/limit")
+def update_limit(campaign_id: str, user_id: str, data: dict):
+    limit = data.get("limit")
+    if limit is None:
+        raise HTTPException(status_code=400, detail="Limit is required")
+    return campaign_service.update_participant_limit(campaign_id, user_id, limit)
 
 
 @router.put("/{campaign_id}")

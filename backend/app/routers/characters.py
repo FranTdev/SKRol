@@ -3,6 +3,8 @@ from ..database import get_db
 from ..models import CharacterCreate
 from typing import List
 
+from ..services import character_service
+
 router = APIRouter()
 db = get_db()
 
@@ -23,29 +25,7 @@ def create_character(character: CharacterCreate):
 
 @router.get("/campaign/{campaign_id}/{requester_id}", response_model=List[dict])
 def get_campaign_characters(campaign_id: str, requester_id: str):
-    if db is None:
-        raise HTTPException(status_code=503, detail="Database not connected")
-
-    try:
-        # Check if requester is admin of the campaign
-        campaign_resp = (
-            db.table("campaigns").select("admin_id").eq("id", campaign_id).execute()
-        )
-        if not campaign_resp.data:
-            raise HTTPException(status_code=404, detail="Campaña no encontrada")
-
-        is_admin = campaign_resp.data[0]["admin_id"] == requester_id
-
-        query = db.table("characters").select("*").eq("campaign_id", campaign_id)
-
-        if not is_admin:
-            # If not admin, only show characters belonging to the requester
-            query = query.eq("user_id", requester_id)
-
-        response = query.execute()
-        return response.data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return character_service.get_campaign_characters_filtered(campaign_id, requester_id)
 
 
 @router.get("/user/{user_id}", response_model=List[dict])
@@ -66,11 +46,12 @@ def update_character(character_id: str, character_data: dict):
         raise HTTPException(status_code=503, detail="Database not connected")
 
     try:
+        # Filter out fields that are not in the database table (like joined data 'users')
+        # This is a safety measure if the frontend sends extra fields
+        clean_data = {k: v for k, v in character_data.items() if k != "users"}
+
         response = (
-            db.table("characters")
-            .update(character_data)
-            .eq("id", character_id)
-            .execute()
+            db.table("characters").update(clean_data).eq("id", character_id).execute()
         )
         if response.data:
             return response.data[0]
@@ -79,13 +60,29 @@ def update_character(character_id: str, character_data: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.patch("/{character_id}/condition")
+def update_condition(character_id: str, data: dict):
+    status = data.get("status")
+    if not status:
+        raise HTTPException(status_code=400, detail="Status is required")
+    return character_service.update_character_condition(character_id, status)
+
+
+@router.patch("/{character_id}/transfer")
+def transfer_owner(character_id: str, data: dict):
+    new_owner_id = data.get("new_owner_id")
+    if not new_owner_id:
+        raise HTTPException(status_code=400, detail="new_owner_id is required")
+    return character_service.transfer_character_ownership(character_id, new_owner_id)
+
+
 @router.delete("/{character_id}")
 def delete_character(character_id: str):
+    # This remains as the "ownership transfer to admin" logic for the frontend delete button
     if db is None:
         raise HTTPException(status_code=503, detail="Database not connected")
 
     try:
-        # Get character to find campaign_id
         char_resp = (
             db.table("characters")
             .select("campaign_id")
@@ -96,8 +93,6 @@ def delete_character(character_id: str):
             raise HTTPException(status_code=404, detail="Personaje no encontrado")
 
         campaign_id = char_resp.data[0]["campaign_id"]
-
-        # Get campaign admin
         campaign_resp = (
             db.table("campaigns").select("admin_id").eq("id", campaign_id).execute()
         )
@@ -105,12 +100,12 @@ def delete_character(character_id: str):
             raise HTTPException(status_code=404, detail="Campaña no encontrada")
 
         admin_id = campaign_resp.data[0]["admin_id"]
-
-        # Transfer ownership to admin
-        db.table("characters").update({"user_id": admin_id}).eq(
-            "id", character_id
-        ).execute()
-
-        return {"message": "Personaje transferido al admin exitosamente"}
+        return character_service.transfer_character_ownership(character_id, admin_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{character_id}/permanent")
+def delete_character_permanent(character_id: str):
+    # This is for the admin to fully remove a character
+    return character_service.hard_delete_character_preserved(character_id)

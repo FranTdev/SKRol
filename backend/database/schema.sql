@@ -11,6 +11,7 @@ CREATE TABLE campaign_participants (
     campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     role TEXT DEFAULT 'player', -- 'master' o 'player'
+    char_limit INTEGER DEFAULT 3, -- Límite de personajes vivos
     PRIMARY KEY (campaign_id, user_id)
 );
 

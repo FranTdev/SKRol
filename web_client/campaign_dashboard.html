@@ -328,6 +328,66 @@
             padding: 0.5rem 1rem;
             border-radius: 4px;
         }
+
+        /* Death Status */
+        .char-card.dead {
+            filter: grayscale(1);
+            opacity: 0.7;
+            border-left-color: #444;
+        }
+
+        .detailed-sheet textarea:read-only {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid #222;
+        }
+
+        .admin-only {
+            display: none;
+        }
+
+        /* Pending Death Glow & Pulsing Aura */
+        .char-card.pending-death {
+            border: 1px solid #ff9800 !important;
+            box-shadow: 0 0 15px rgba(255, 152, 0, 0.4);
+            animation: death-aura 2s infinite ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .char-card.pending-death::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 152, 0, 0.05), transparent);
+            pointer-events: none;
+        }
+
+        @keyframes death-aura {
+            0% {
+                box-shadow: 0 0 10px rgba(255, 152, 0, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 25px rgba(255, 152, 0, 0.6);
+            }
+
+            100% {
+                box-shadow: 0 0 10px rgba(255, 152, 0, 0.3);
+            }
+        }
+
+        .limit-input {
+            width: 50px;
+            background: #222;
+            border: 1px solid #444;
+            color: white;
+            padding: 0.3rem;
+            border-radius: 4px;
+            text-align: center;
+        }
     </style>
 </head>
 
@@ -342,6 +402,7 @@
         <button class="tab-btn active" onclick="showTab('resumen')">Resumen</button>
         <button id="participantes-tab-btn" class="tab-btn" onclick="showTab('participantes')">Participantes</button>
         <button class="tab-btn" onclick="showTab('personajes')">Personajes</button>
+        <button id="gestion-tab-btn" class="tab-btn admin-only" onclick="showTab('gestion')">Gestión</button>
         <button class="tab-btn" onclick="showTab('manual')">Manual</button>
     </nav>
 
@@ -387,6 +448,7 @@
 
         <!-- Tab: Manual -->
         <div id="manual" class="tab-content">
+            <!-- ... existing manual content ... -->
             <div class="card" style="text-align: center; padding: 3rem;">
                 <h2 style="font-family: 'Metamorphous', cursive; font-size: 2rem;">EL MANUAL DEL HAZ</h2>
                 <p>Todo lo que un pistolero o un maestro necesita saber para sobrevivir.</p>
@@ -394,9 +456,21 @@
                     Manual Completo (PDF)</a>
             </div>
         </div>
+
+        <!-- Tab: Gestión (Admin Only) -->
+        <div id="gestion" class="tab-content">
+            <div class="card">
+                <h2>Gestión de Mundos y Pistoleros</h2>
+                <p style="color: #888; margin-bottom: 2rem;">Controla cuántos personajes vivos puede tener cada
+                    participante.</p>
+                <div id="limit-management-list" class="participant-list">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Modal Personaje (Creación/Edición Básica) -->
+    <!-- Modal Personaje (Creación/Edición Básica / Ajustes) -->
     <div id="char-modal" class="modal">
         <div class="modal-content">
             <h2 id="char-modal-title">NUEVO PERSONAJE</h2>
@@ -406,15 +480,28 @@
                     <label>Nombre</label>
                     <input type="text" id="char-name" required>
                 </div>
-                <div class="form-row">
-                    <label>Asignar a Usuario</label>
+                <div class="form-row admin-only" id="owner-row">
+                    <label>Asignar a Usuario (Dueño)</label>
                     <select id="char-user-select">
                         <!-- Cargado dinámicamente con participantes -->
                     </select>
                 </div>
                 <div class="form-row">
-                    <label>Descripción</label>
+                    <label>Descripción inicial</label>
                     <textarea id="char-description" rows="3"></textarea>
+                </div>
+                <div id="admin-controls" class="admin-only"
+                    style="margin-top: 1.5rem; border-top: 1px solid #333; padding-top: 1rem; display: none;">
+                    <label style="color: var(--accent); display: block; margin-bottom: 0.5rem;">CONTROLES DEL
+                        MAESTRO</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn btn-small" id="kill-btn"
+                            onclick="adminUpdateCondition('muerte')" style="border-color: #900;">Matar</button>
+                        <button type="button" class="btn btn-small" id="revive-btn"
+                            onclick="adminUpdateCondition('vivo')" style="border-color: #090;">Revivir</button>
+                        <button type="button" class="btn btn-small" onclick="deletePermanent()"
+                            style="border-color: #f44; color: #f44; margin-left: auto;">ELIMINAR PERMANENTE</button>
+                    </div>
                 </div>
                 <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
                     <button type="button" onclick="closeModal('char-modal')" class="btn"
@@ -428,9 +515,26 @@
     <!-- Detailed Character Sheet -->
     <div id="detailed-sheet" class="detailed-sheet">
         <div class="sheet-header">
-            <h2 id="sheet-char-name" style="font-family: 'Metamorphous', cursive; color: var(--accent); margin: 0;">
-            </h2>
+            <div>
+                <h2 id="sheet-char-name" style="font-family: 'Metamorphous', cursive; color: var(--accent); margin: 0;">
+                </h2>
+                <div id="sheet-owner" style="font-size: 0.8rem; color: #888;">Controlado por: <span>...</span></div>
+            </div>
             <button onclick="closeDetailedSheet()" class="btn" style="border-color: #555; color: #888;">Cerrar</button>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>HISTORIA / DESCRIPCIÓN</h3>
+                <div>
+                    <button id="edit-desc-btn" class="btn btn-small" onclick="toggleEditDesc()">🔨 Editar</button>
+                    <button id="request-death-btn" class="btn btn-small" onclick="requestDeath()"
+                        style="border-color: #666; color: #666;">💀 Solicitar Matar</button>
+                </div>
+            </div>
+            <textarea id="sheet-desc"
+                style="width: 100%; background: transparent; border: none; color: #ccc; font-family: inherit; resize: vertical; min-height: 100px; padding: 0.5rem;"
+                readonly></textarea>
         </div>
 
         <div class="stats-grid" id="sheet-stats">
@@ -441,13 +545,6 @@
             <button onclick="rollRandomStats()" class="btn" style="flex: 1;">Stats Aleatorios</button>
             <button onclick="openShiningMachine()" class="btn"
                 style="flex: 1; border-color: #4a148c; color: #9c27b0;">Máquina del Resplandor</button>
-        </div>
-
-        <div class="card">
-            <h3>Descripción</h3>
-            <textarea id="sheet-desc"
-                style="width: 100%; background: transparent; border: none; color: #ccc; font-family: inherit; resize: vertical;"
-                rows="5" onchange="saveSheetData()"></textarea>
         </div>
 
         <div class="inventory-section">

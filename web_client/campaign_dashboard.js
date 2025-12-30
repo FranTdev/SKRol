@@ -28,11 +28,50 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 
         document.getElementById(tabId).classList.add('active');
-        event.currentTarget.classList.add('active');
+        // If event is not present (called from code), we find the button
+        const btn = event ? event.currentTarget : document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
+        if (btn) btn.classList.add('active');
 
         // Reload data depending on tab
         if (tabId === 'participantes') fetchParticipants();
         if (tabId === 'personajes') fetchCharacters();
+        if (tabId === 'gestion') fetchParticipantsLimits();
+    };
+
+    async function fetchParticipantsLimits() {
+        if (!window.isAdmin) return;
+        const list = document.getElementById('limit-management-list');
+        list.innerHTML = 'Cargando pistoleros...';
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/campaigns/${campaignId}/participants/limits`);
+            const data = await response.json();
+            list.innerHTML = '';
+            data.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'participant-item';
+                item.innerHTML = `
+                    <div>
+                        <strong>${p.users ? p.users.username : 'NPC'}</strong>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="font-size: 0.8rem; color: #888;">Límite de vivos:</span>
+                        <input type="number" class="limit-input" value="${p.char_limit || 3}" 
+                            onchange="updateLimit('${p.user_id}', this.value)">
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    window.updateLimit = async (targetUserId, newLimit) => {
+        try {
+            await fetch(`http://127.0.0.1:8000/campaigns/${campaignId}/participants/${targetUserId}/limit`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ limit: parseInt(newLimit) })
+            });
+        } catch (e) { console.error(e); }
     };
 
     // --- CAMPAIGN INFO ---
@@ -58,6 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     charUserSelect.parentElement.style.display = 'none';
                     // Also hide the participants section if user manages to navigate there
                     document.getElementById('search-panel').style.display = 'none';
+                } else {
+                    // Show admin only elements
+                    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
                 }
             }
         } catch (e) { console.error(e); }
@@ -163,13 +205,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isOwner = char.user_id === user.id;
                 const canEdit = window.isAdmin || isOwner;
 
+                const isDead = char.condition && char.condition.status === 'muerte';
+                const isPendingDeath = char.condition && char.condition.request_death === true;
+
+                // Players can only open sheet if not dead
+                const canOpenSheet = window.isAdmin || (isOwner && !isDead);
+
+                card.className = `char-card ${isDead ? 'dead' : ''} ${isPendingDeath ? 'pending-death' : ''}`;
                 card.innerHTML = `
-                    <h3 style="cursor: pointer;" onclick="openDetailedSheet('${char.id}')">${char.name}</h3>
-                    <p style="font-size: 0.9rem; color: #888;">${char.description || 'Sin descripción'}</p>
+                    <h3 style="${canOpenSheet ? 'cursor: pointer;' : 'cursor: default;'}" onclick="${canOpenSheet ? `openDetailedSheet('${char.id}')` : ''}">${char.name} ${isDead ? '(CAÍDO)' : ''}</h3>
+                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.5rem;">Controlado por: ${char.users ? char.users.username : 'NPC'}</div>
+                    <p style="font-size: 0.9rem; color: #888;">${char.description ? char.description.substring(0, 100) + '...' : 'Sin descripción'}</p>
+                    ${isPendingDeath ? '<p style="color: #ff9800; font-size: 0.8rem; font-weight: bold;">[EL FINAL SE ACERCA]</p>' : ''}
                     <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-                        <button class="btn btn-small" onclick="openDetailedSheet('${char.id}')">Ficha</button>
-                        ${canEdit ? `<button class="btn btn-small" style="border-color: #555;" onclick="openEditChar('${char.id}', '${char.name}', '${char.user_id}', '${char.description}')">Ajustes</button>` : ''}
-                        ${window.isAdmin ? `<button class="btn btn-small" style="border-color: #444;" onclick="deleteChar('${char.id}')">Hacer NPC</button>` : ''}
+                        ${canOpenSheet ? `<button class="btn btn-small" onclick="openDetailedSheet('${char.id}')">Ficha</button>` : ''}
+                        ${(window.isAdmin || isOwner) ? `<button class="btn btn-small" style="border-color: #555;" onclick="openEditChar('${char.id}', '${char.name}', '${char.user_id}', '${char.description}')">Ajustes</button>` : ''}
                     </div>
                 `;
                 charList.appendChild(card);
@@ -181,6 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('char-modal-title').textContent = "NUEVO PERSONAJE";
         document.getElementById('char-id').value = '';
         charForm.reset();
+        document.getElementById('admin-controls').style.display = 'none';
         document.getElementById('char-modal').style.display = 'flex';
     };
 
@@ -188,6 +239,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     charForm.onsubmit = async (e) => {
         e.preventDefault();
+
+        // LIMIT CHECK
+        if (!window.isAdmin) {
+            try {
+                // Get all characters and count live ones
+                const charResp = await fetch(`http://127.0.0.1:8000/characters/campaign/${campaignId}/${user.id}`);
+                const allChars = await charResp.json();
+                const liveChars = allChars.filter(c => c.user_id === user.id && (!c.condition || c.condition.status !== 'muerte'));
+
+                // Get user limit
+                const limitResp = await fetch(`http://127.0.0.1:8000/campaigns/${campaignId}/participants/limits`);
+                const limits = await limitResp.json();
+                const myLimit = limits.find(l => l.user_id === user.id)?.char_limit || 3;
+
+                if (liveChars.length >= myLimit) {
+                    alert(`Has alcanzado tu límite de personajes vivos (${myLimit}).`);
+                    return;
+                }
+            } catch (e) { console.error("Error checking limits", e); }
+        }
+
         const id = document.getElementById('char-id').value;
         const charData = {
             name: document.getElementById('char-name').value,
@@ -213,19 +285,66 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.openEditChar = (id, name, userId, desc) => {
-        document.getElementById('char-modal-title').textContent = "EDITAR PERSONAJE";
+        document.getElementById('char-modal-title').textContent = "AJUSTES DE PERSONAJE";
         document.getElementById('char-id').value = id;
         document.getElementById('char-name').value = name;
         document.getElementById('char-user-select').value = userId || "";
         document.getElementById('char-description').value = desc || "";
+
+        if (window.isAdmin) {
+            document.getElementById('admin-controls').style.display = 'block';
+        }
+
         document.getElementById('char-modal').style.display = 'flex';
     };
 
-    window.deleteChar = async (id) => {
-        if (!confirm('¿Borrar esta hoja de personaje?')) return;
-        await fetch(`http://127.0.0.1:8000/characters/${id}`, { method: 'DELETE' });
-        fetchCharacters();
+    window.adminUpdateCondition = async (status) => {
+        const id = document.getElementById('char-id').value;
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/characters/${id}/condition`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: status })
+            });
+
+            // Also clear death request if confirm death or revive
+            if (status === 'muerte' || status === 'vivo') {
+                const charResp = await fetch(`http://127.0.0.1:8000/characters/campaign/${campaignId}/${user.id}`);
+                const list = await charResp.json();
+                const char = list.find(c => c.id === id);
+                if (char && char.condition) {
+                    char.condition.request_death = false;
+                    await fetch(`http://127.0.0.1:8000/characters/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(char)
+                    });
+                }
+            }
+
+            if (response.ok) {
+                closeModal('char-modal');
+                fetchCharacters();
+            }
+        } catch (e) { console.error(e); }
     };
+
+    window.deletePermanent = async () => {
+        const id = document.getElementById('char-id').value;
+        if (!confirm('¿ESTÁS SEGURO? Esto eliminará al personaje TOTALMENTE del Haz. Esta acción es irreversible.')) return;
+
+        const verification = prompt('Por favor, escribe "BORRAR" para confirmar:');
+        if (verification !== 'BORRAR') return;
+
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/characters/${id}/permanent`, { method: 'DELETE' });
+            if (response.ok) {
+                closeModal('char-modal');
+                fetchCharacters();
+            }
+        } catch (e) { console.error(e); }
+    };
+
 
     // INIT
     fetchCampaignInfo();
@@ -236,9 +355,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.openDetailedSheet = async (id) => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/characters/user/${user.id}`); // This is slow but for now it works to find one. Or better:
-            // Let's assume we can fetch by ID. 
-            // Wait, I don't have a single char fetch by ID endpoint in characters.py... Let's use the list and find.
             const listResp = await fetch(`http://127.0.0.1:8000/characters/campaign/${campaignId}/${user.id}`);
             const list = await listResp.json();
             currentChar = list.find(c => c.id === id);
@@ -246,7 +362,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!currentChar) return;
 
             document.getElementById('sheet-char-name').textContent = currentChar.name;
-            document.getElementById('sheet-desc').value = currentChar.description || '';
+            const descArea = document.getElementById('sheet-desc');
+            descArea.value = currentChar.description || '';
+            descArea.style.height = 'auto';
+            descArea.style.height = descArea.scrollHeight + 'px';
+            descArea.readOnly = true;
+            document.getElementById('edit-desc-btn').textContent = "🔨 Editar";
+
+            document.querySelector('#sheet-owner span').textContent = currentChar.users ? currentChar.users.username : 'NPC';
+
             renderStats();
             renderItems();
             document.getElementById('detailed-sheet').style.display = 'block';
@@ -256,6 +380,35 @@ document.addEventListener('DOMContentLoaded', () => {
     window.closeDetailedSheet = () => {
         document.getElementById('detailed-sheet').style.display = 'none';
         fetchCharacters();
+    };
+
+    window.toggleEditDesc = () => {
+        const area = document.getElementById('sheet-desc');
+        const btn = document.getElementById('edit-desc-btn');
+        if (area.readOnly) {
+            area.readOnly = false;
+            area.focus();
+            btn.textContent = "💾 Bloquear";
+        } else {
+            area.readOnly = true;
+            btn.textContent = "🔨 Editar";
+            saveSheetData();
+        }
+    };
+
+    window.requestDeath = async () => {
+        const message = window.isAdmin
+            ? 'Nota: Has marcado a este personaje para el final. El Haz aguarda tu confirmación final en los Ajustes.'
+            : '¿Deseas solicitar el fin de este personaje ante el Maestro?';
+
+        if (!confirm(message)) return;
+
+        if (!currentChar.condition) currentChar.condition = {};
+        currentChar.condition.request_death = true;
+        await saveSheetData();
+
+        if (!window.isAdmin) alert("Petición de muerte enviada al Maestro.");
+        closeDetailedSheet();
     };
 
     function renderStats() {
@@ -312,17 +465,33 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.saveSheetData = async () => {
-        currentChar.description = document.getElementById('sheet-desc').value;
+        if (!currentChar) return;
+
+        // CLEAN DATA: Remove 'users' join object before sending to backend
+        // to avoid database errors with unexpected payload fields
+        const payload = { ...currentChar };
+        delete payload.users;
+
+        payload.description = document.getElementById('sheet-desc').value;
+
         try {
             const response = await fetch(`http://127.0.0.1:8000/characters/${currentChar.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(currentChar)
+                body: JSON.stringify(payload)
             });
             if (response.ok) {
                 alert("Hoja guardada en el Haz.");
+                // Update local currentChar to reflect saved description
+                currentChar.description = payload.description;
+            } else {
+                const err = await response.json();
+                alert("Error al guardar: " + (err.detail || "Error desconocido"));
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            alert("No se pudo conectar con el servidor.");
+        }
     };
 
     // SHINING MACHINE SIMULATION (simplified from index.js logic)

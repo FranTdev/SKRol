@@ -1,21 +1,25 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import auth
+from .routers import auth, campaigns, characters
 
+# uvicorn app.main:app --reload
 app = FastAPI(title="Stephen King RPG API")
 
 # Configurar CORS (Para que tu Web pueda hablar con el Backend)
 # Esto permite que tu HTML local o Unity se conecten sin errores de seguridad
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # En producción cambia "*" por tu dominio real
+    allow_origins=["*"],  # En producción cambia "*" por tu dominio real
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Incluir las rutas de autenticación
+# Incluir las rutas
 app.include_router(auth.router, prefix="/auth", tags=["Autenticación"])
+app.include_router(campaigns.router, prefix="/campaigns", tags=["Campañas"])
+app.include_router(characters.router, prefix="/characters", tags=["Personajes"])
+
 
 @app.get("/")
 def read_root():

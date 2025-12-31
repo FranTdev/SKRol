@@ -30,6 +30,15 @@ class CampaignCreate(BaseModel):
     admin_id: str
 
 
+class CampaignRules(BaseModel):
+    campaign_id: str
+    rules: Optional[str] = ""
+    shining_prob: float = 1.0
+    max_power: int = 50
+    default_char_limit: int = 3
+    abilities_config: List[Dict] = []
+
+
 class Campaign(BaseModel):
     id: str
     name: str

@@ -56,13 +56,64 @@ def update_participant_limit(campaign_id: str, user_id: str, limit: int):
 
 
 def get_participants_with_limits(campaign_id: str):
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not connected")
+
+    # Priority 1: Usernames + char_limit (Perfect)
     try:
         response = (
             db.table("campaign_participants")
-            .select("user_id, char_limit, users(username)")
+            .select("user_id, char_limit, users!user_id(username)")
             .eq("campaign_id", campaign_id)
             .execute()
         )
-        return response.data
+        if response.data:
+            return response.data
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"DEBUG: Perfect query fail (likely missing char_limit): {str(e)}")
+
+    # Priority 2: Usernames only (Fallback if char_limit column is missing)
+    try:
+        response = (
+            db.table("campaign_participants")
+            .select("user_id, users!user_id(username)")
+            .eq("campaign_id", campaign_id)
+            .execute()
+        )
+        data = response.data
+        for p in data:
+            p["char_limit"] = 3  # Default fallback for the column
+        return data
+    except Exception as e:
+        print(f"DEBUG: Username query fail: {str(e)}")
+
+    # Priority 3: Only IDs + char_limit (Fallback if users join fails)
+    try:
+        response = (
+            db.table("campaign_participants")
+            .select("user_id, char_limit")
+            .eq("campaign_id", campaign_id)
+            .execute()
+        )
+        data = response.data
+        for p in data:
+            p["users"] = {"username": f"Pistolero ({p['user_id'][:8]})"}
+        return data
+    except Exception as e:
+        print(f"DEBUG: Column-only query fail: {str(e)}")
+
+    # Priority 4: Absolute minimum (Only user_id)
+    try:
+        response = (
+            db.table("campaign_participants")
+            .select("user_id")
+            .eq("campaign_id", campaign_id)
+            .execute()
+        )
+        data = response.data
+        for p in data:
+            p["char_limit"] = 3
+            p["users"] = {"username": f"Pistolero ({p['user_id'][:8]})"}
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fallo total en el Haz: {str(e)}")

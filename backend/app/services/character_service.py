@@ -61,11 +61,15 @@ def update_character_condition(character_id: str, status: str):
         condition = char_resp.data[0].get("condition") or {}
         condition["status"] = status
 
+        # Sync with stats.Estado refactor
+        updates = {"condition": condition}
+        char_data = char_resp.data[0]
+        stats = char_data.get("stats") or {}
+        stats["Estado"] = status
+        updates["stats"] = stats
+
         response = (
-            db.table("characters")
-            .update({"condition": condition})
-            .eq("id", character_id)
-            .execute()
+            db.table("characters").update(updates).eq("id", character_id).execute()
         )
         return response.data[0]
     except Exception as e:

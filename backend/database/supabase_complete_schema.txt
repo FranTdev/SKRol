@@ -1,5 +1,18 @@
+-- SUPABASE COMPLETE SCHEMA - STEPHEN KING RPG
+
+-- 0. TABLA DE USUARIOS (Requerida por las referencias)
+-- Se asume que usas la autenticación de Supabase o una tabla manual.
+-- Si es manual, esta es la estructura básica:
+CREATE TABLE IF NOT EXISTS users (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
 -- 1. TABLA DE CAMPAÑAS
-CREATE TABLE campaigns (
+CREATE TABLE IF NOT EXISTS campaigns (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL,
     admin_id UUID REFERENCES users(id) NOT NULL, -- El Game Master
@@ -7,16 +20,16 @@ CREATE TABLE campaigns (
 );
 
 -- 2. TABLA DE PARTICIPANTES (Quién juega en qué campaña)
-CREATE TABLE campaign_participants (
+CREATE TABLE IF NOT EXISTS campaign_participants (
     campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     role TEXT DEFAULT 'player', -- 'master' o 'player'
-    char_limit INTEGER DEFAULT 3, -- Límite de personajes vivos
+    char_limit INTEGER DEFAULT 3, -- Límite de personajes vivos por usuario
     PRIMARY KEY (campaign_id, user_id)
 );
 
 -- 3. TABLA DE PERSONAJES
-CREATE TABLE characters (
+CREATE TABLE IF NOT EXISTS characters (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE, -- Dueño del personaje
@@ -24,10 +37,9 @@ CREATE TABLE characters (
     name TEXT NOT NULL,
     description TEXT,
     
-    -- AQUÍ GUARDAMOS TUS ESTRUCTURAS COMPLEJAS COMO JSON
-    -- Esto permite guardar listas, objetos anidados y lógica flexible
+    -- ESTRUCTURAS COMPLEJAS JSON
     stats JSONB DEFAULT '{}'::jsonb,        -- Vitalidad, Fuerza, Resplandor, etc.
-    skills JSONB DEFAULT '[]'::jsonb,       -- Lista de Habilidades (con sus efectos colaterales)
+    skills JSONB DEFAULT '[]'::jsonb,       -- Lista de Habilidades
     inventory JSONB DEFAULT '[]'::jsonb,    -- Lista de Items
     condition JSONB DEFAULT '{}'::jsonb,    -- Condición actual (Muerto, Envenenado, etc.)
     
@@ -35,7 +47,7 @@ CREATE TABLE characters (
 );
 
 -- 4. TABLA DE REGLAS Y CONFIGURACIÓN DE CAMPAÑA
-CREATE TABLE campaign_rules (
+CREATE TABLE IF NOT EXISTS campaign_rules (
     campaign_id UUID PRIMARY KEY REFERENCES campaigns(id) ON DELETE CASCADE,
     rules TEXT,
     shining_prob FLOAT DEFAULT 1.0,
@@ -45,7 +57,8 @@ CREATE TABLE campaign_rules (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- Desactivar seguridad por ahora para desarrollar rápido
+-- DESACTIVAR SEGURIDAD (Row Level Security) para desarrollo rápido
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE campaigns DISABLE ROW LEVEL SECURITY;
 ALTER TABLE campaign_participants DISABLE ROW LEVEL SECURITY;
 ALTER TABLE characters DISABLE ROW LEVEL SECURITY;

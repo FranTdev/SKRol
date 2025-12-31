@@ -1,0 +1,17 @@
+﻿--- DIAGNOSTIC START ---
+Using test campaign_id: 5aa92471-241f-4da2-89c7-db0b74ab05dd
+
+Test 1: Simple select (user_id)
+SUCCESS: Found participants
+[{'user_id': '5bb913bc-4cf0-4023-87b6-7a47bbed4a1e'}]
+
+Test 2: Select with char_limit
+FAIL: {'message': 'column campaign_participants.char_limit does not exist', 'code': '42703', 'hint': None, 'details': None}
+
+Test 3: Join with users(username)
+SUCCESS: Join users worked
+
+Test 4: Join with users!user_id(username)
+SUCCESS: Explicit join worked
+
+--- DIAGNOSTIC END ---

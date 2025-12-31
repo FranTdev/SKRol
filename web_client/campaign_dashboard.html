@@ -137,7 +137,58 @@
             color: white;
         }
 
-        /* Participantes Styles */
+        /* Ranking Styles for Shining */
+        .rank-s {
+            color: #ffeb3b !important;
+            text-shadow: 0 0 15px #ffeb3b, 0 0 25px rgba(255, 235, 59, 0.5);
+            font-weight: bold;
+            animation: supreme-glow 2s infinite alternate;
+        }
+
+        .rank-a {
+            color: #9c27b0 !important;
+            text-shadow: 0 0 10px #9c27b0;
+            font-weight: bold;
+            animation: prestige-glow 3s infinite alternate;
+        }
+
+        .rank-b {
+            color: #f44336 !important;
+            text-shadow: 0 0 8px #f44336;
+            font-weight: bold;
+        }
+
+        .rank-c {
+            color: #00bcd4 !important;
+            text-shadow: 0 0 5px #00bcd4;
+        }
+
+        .rank-d {
+            color: #757575 !important;
+            opacity: 0.8;
+        }
+
+        @keyframes supreme-glow {
+            from {
+                text-shadow: 0 0 10px #ffeb3b, 0 0 20px rgba(255, 235, 59, 0.5);
+            }
+
+            to {
+                text-shadow: 0 0 20px #ffeb3b, 0 0 40px rgba(255, 235, 59, 0.8);
+            }
+        }
+
+        @keyframes prestige-glow {
+            from {
+                text-shadow: 0 0 5px #9c27b0;
+            }
+
+            to {
+                text-shadow: 0 0 15px #9c27b0;
+            }
+        }
+
+        /* Adjustments */
         .search-box {
             display: flex;
             gap: 1rem;
@@ -346,36 +397,86 @@
         }
 
         /* Pending Death Glow & Pulsing Aura */
-        .char-card.pending-death {
-            border: 1px solid #ff9800 !important;
-            box-shadow: 0 0 15px rgba(255, 152, 0, 0.4);
-            animation: death-aura 2s infinite ease-in-out;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .char-card.pending-death::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, transparent, rgba(255, 152, 0, 0.05), transparent);
-            pointer-events: none;
-        }
-
         @keyframes death-aura {
             0% {
-                box-shadow: 0 0 10px rgba(255, 152, 0, 0.3);
+                box-shadow: 0 0 10px rgba(183, 28, 28, 0.3);
+                border-color: #b71c1c88;
             }
 
             50% {
-                box-shadow: 0 0 25px rgba(255, 152, 0, 0.6);
+                box-shadow: 0 0 30px rgba(183, 28, 28, 0.7);
+                border-color: #b71c1c;
             }
 
             100% {
-                box-shadow: 0 0 10px rgba(255, 152, 0, 0.3);
+                box-shadow: 0 0 10px rgba(183, 28, 28, 0.3);
+                border-color: #b71c1c88;
+            }
+        }
+
+        /* NEW STATES: TRASCENDIDO & DEAD REFINED */
+        .char-card.dead {
+            border: 2px solid #600 !important;
+            background: linear-gradient(135deg, #1a0000 0%, #000 100%);
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.9);
+            filter: grayscale(0.8) contrast(1.1);
+            position: relative;
+        }
+
+        .char-card.dead::before {
+            content: 'DEFUNCION';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            font-size: 3rem;
+            color: #f00;
+            opacity: 0.15;
+            font-weight: bold;
+            pointer-events: none;
+            border: 4px solid #f00;
+            padding: 0.5rem;
+        }
+
+        .char-card.pending-death {
+            border: 2px solid #b71c1c !important;
+            animation: death-aura 1.5s infinite ease-in-out;
+            background: linear-gradient(0deg, rgba(183, 28, 28, 0.1), transparent);
+        }
+
+        .char-card.transcended {
+            border: 2px solid #ffeb3b !important;
+            background: linear-gradient(135deg, #2b2b00 0%, #000 100%);
+            box-shadow: 0 0 25px rgba(255, 235, 59, 0.3);
+            animation: transcendental-glow 4s infinite ease-in-out;
+            position: relative;
+        }
+
+        .char-card.transcended::before {
+            content: '✨';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            opacity: 0.1;
+            pointer-events: none;
+        }
+
+        @keyframes transcendental-glow {
+            0% {
+                box-shadow: 0 0 15px rgba(255, 235, 59, 0.2);
+                border-color: #ffeb3b88;
+            }
+
+            50% {
+                box-shadow: 0 0 35px rgba(255, 235, 59, 0.5);
+                border-color: #ffeb3b;
+            }
+
+            100% {
+                box-shadow: 0 0 15px rgba(255, 235, 59, 0.2);
+                border-color: #ffeb3b88;
             }
         }
 
@@ -387,6 +488,12 @@
             padding: 0.3rem;
             border-radius: 4px;
             text-align: center;
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            filter: grayscale(1);
         }
     </style>
 </head>
@@ -460,7 +567,45 @@
         <!-- Tab: Gestión (Admin Only) -->
         <div id="gestion" class="tab-content">
             <div class="card">
-                <h2>Gestión de Mundos y Pistoleros</h2>
+                <h2>Reglas del Mundo</h2>
+                <textarea id="campaign-rules-input"
+                    style="width: 100%; min-height: 100px; background: #111; border: 1px solid #333; color: white; padding: 0.5rem; margin-bottom: 1rem;"
+                    placeholder="Define aquí las reglas generales..."></textarea>
+                <div style="text-align: right;">
+                    <button class="btn btn-small" onclick="saveCampaignGeneralSettings()">Guardar Reglas</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>El Resplandor: Configuración</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+                    <div>
+                        <label
+                            style="display: block; color: #888; font-size: 0.8rem; margin-bottom: 0.5rem;">PROBABILIDAD
+                            (%)</label>
+                        <input type="number" id="shining-prob-input" class="form-row input" style="width: 80px;" min="0"
+                            max="100" step="0.1" value="1.0">
+                    </div>
+                    <div>
+                        <label style="display: block; color: #888; font-size: 0.8rem; margin-bottom: 0.5rem;">LÍMITE DE
+                            PODER BASE</label>
+                        <input type="number" id="max-power-input" class="form-row input" style="width: 80px;" min="1"
+                            max="1000" value="50">
+                    </div>
+                    <div>
+                        <label style="display: block; color: #888; font-size: 0.8rem; margin-bottom: 0.5rem;">LÍMITE
+                            GLOBAL (Personajes)</label>
+                        <input type="number" id="global-char-limit-input" class="form-row input" style="width: 80px;"
+                            min="1" max="50" value="3">
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <button class="btn btn-small" onclick="saveCampaignGeneralSettings()">Guardar Configuración</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Gestión de Pistoleros</h2>
                 <p style="color: #888; margin-bottom: 2rem;">Controla cuántos personajes vivos puede tener cada
                     participante.</p>
                 <div id="limit-management-list" class="participant-list">
@@ -494,11 +639,14 @@
                     style="margin-top: 1.5rem; border-top: 1px solid #333; padding-top: 1rem; display: none;">
                     <label style="color: var(--accent); display: block; margin-bottom: 0.5rem;">CONTROLES DEL
                         MAESTRO</label>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         <button type="button" class="btn btn-small" id="kill-btn"
                             onclick="adminUpdateCondition('muerte')" style="border-color: #900;">Matar</button>
                         <button type="button" class="btn btn-small" id="revive-btn"
                             onclick="adminUpdateCondition('vivo')" style="border-color: #090;">Revivir</button>
+                        <button type="button" class="btn btn-small" id="transcend-btn"
+                            onclick="adminUpdateCondition('trascendido')"
+                            style="border-color: #ffeb3b; color: #ffeb3b;">Trascender</button>
                         <button type="button" class="btn btn-small" onclick="deletePermanent()"
                             style="border-color: #f44; color: #f44; margin-left: auto;">ELIMINAR PERMANENTE</button>
                     </div>
@@ -537,13 +685,32 @@
                 readonly></textarea>
         </div>
 
-        <div class="stats-grid" id="sheet-stats">
-            <!-- Stats will be loaded here -->
+        <div class="card" id="sheet-skills-card" style="margin-top: 1rem;">
+            <h3>TAGS / HABILIDADES DEL RESPLANDOR</h3>
+            <div id="sheet-skills" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <!-- Tags here -->
+            </div>
         </div>
 
-        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-            <button onclick="rollRandomStats()" class="btn" style="flex: 1;">Stats Aleatorios</button>
-            <button onclick="openShiningMachine()" class="btn"
+        <div class="stats-grid" id="sheet-stats" style="margin-top: 1rem;">
+            <!-- Stats will be loaded here: Vida Max, Vida, Fuerza, etc. -->
+        </div>
+
+        <div class="card" style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>Condiciones Académicas y Físicas</h3>
+                <button onclick="openConditionsModal()" class="btn btn-small"
+                    style="border-color: #ff9800; color: #ff9800;">Ver Todos</button>
+            </div>
+            <div id="quick-conditions" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                <!-- Short list of main conditions -->
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem; margin-bottom: 2rem;">
+            <button id="roll-stats-btn" onclick="rollRandomStats()" class="btn" style="flex: 1;">Stats
+                Aleatorios</button>
+            <button id="roll-shining-btn" onclick="openShiningMachine()" class="btn"
                 style="flex: 1; border-color: #4a148c; color: #9c27b0;">Máquina del Resplandor</button>
         </div>
 
@@ -581,6 +748,19 @@
             </div>
             <div style="margin-top: 2rem; text-align: right;">
                 <button onclick="closeModal('shining-machine-modal')" class="btn">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Conditions -->
+    <div id="conditions-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h2 style="color: #ff9800;">ESTADO DEL PISTOLERO</h2>
+            <div id="conditions-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.8rem;">
+                <!-- Detailed conditions list -->
+            </div>
+            <div style="margin-top: 2rem; text-align: right;">
+                <button onclick="closeModal('conditions-modal')" class="btn">Cerrar</button>
             </div>
         </div>
     </div>

@@ -89,6 +89,29 @@
                 </div>
             </div>
 
+
+
+            <div class="card">
+                <h2>Estado del Mundo (Resumen)</h2>
+                <textarea id="campaign-desc-input"
+                    style="width: 100%; min-height: 80px; background: #111; border: 1px solid #333; color: white; padding: 0.5rem; margin-bottom: 1rem;"
+                    placeholder="Describe el estado actual del mundo para tus jugadores..."></textarea>
+                <div style="text-align: right;">
+                    <button class="btn btn-small" onclick="saveCampaignDescription()">Actualizar Estado</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Configuración del Manual</h2>
+                <label style="display: block; color: #888; font-size: 0.8rem; margin-bottom: 0.5rem;">URL DEL PDF DEL
+                    MANUAL</label>
+                <input type="text" id="manual-url-input" class="form-row input"
+                    placeholder="https://example.com/manual.pdf">
+                <div style="text-align: right; margin-top: 1rem;">
+                    <button class="btn btn-small" onclick="saveCampaignGeneralSettings()">Guardar URL</button>
+                </div>
+            </div>
+
             <div class="card">
                 <h2>El Resplandor: Configuración</h2>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">

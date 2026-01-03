@@ -53,6 +53,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('shining-prob-input').value = settings.shining_prob || 1.0;
                 document.getElementById('max-power-input').value = settings.max_power || 50;
                 document.getElementById('global-char-limit-input').value = settings.default_char_limit || 3;
+                document.getElementById('manual-url-input').value = settings.manual_url || "";
+            }
+
+            // Update Manual Link dynamically
+            if (settings.manual_url) {
+                const manualBtn = document.querySelector('#manual a.btn');
+                if (manualBtn) {
+                    manualBtn.href = settings.manual_url;
+                    manualBtn.target = "_blank";
+                }
             }
 
             campaignItemPool = settings.item_pool || [];
@@ -66,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
             shining_prob: parseFloat(document.getElementById('shining-prob-input').value),
             max_power: parseInt(document.getElementById('max-power-input').value),
             default_char_limit: parseInt(document.getElementById('global-char-limit-input').value),
+            manual_url: document.getElementById('manual-url-input').value,
             item_pool: campaignItemPool
         };
 
@@ -156,6 +167,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Set global admin status
                 window.isAdmin = current.admin_id === user.id;
 
+                // Show User Name in Header
+                const adminDiv = document.getElementById('campaign-admin');
+                adminDiv.innerHTML = `Maestro: ${adminName} <span style="color: #444; margin: 0 0.5rem;">|</span> <span style="color: var(--accent);">Usuario: ${user.username}</span>`;
+
+                // Set Description
+                if (current.description) {
+                    document.getElementById('campaign-desc').textContent = current.description;
+                    const descInput = document.getElementById('campaign-desc-input');
+                    if (descInput) descInput.value = current.description;
+                }
+
                 // Hide/Show admin-only elements
                 if (!window.isAdmin) {
                     document.getElementById('participantes-tab-btn').style.display = 'none';
@@ -170,6 +192,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (e) { console.error(e); }
     }
+
+    window.saveCampaignDescription = async () => {
+        const desc = document.getElementById('campaign-desc-input').value;
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/campaigns/${campaignId}?requester_id=${user.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: desc })
+            });
+
+            if (response.ok) {
+                document.getElementById('campaign-desc').textContent = desc;
+                alert("Estado del Mundo actualizado.");
+            } else {
+                alert("Error al actualizar la descripción.");
+            }
+        } catch (e) { console.error(e); }
+    };
 
     // --- PARTICIPANTS ---
     async function fetchParticipants() {
@@ -846,25 +886,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
 
         container.innerHTML = '';
+        // Clear any flex styles if present inline (from previous row-based designs)
+        container.style = '';
+        container.className = 'tags-grid'; // Use grid class
+
         if (skills.length === 0) {
-            container.innerHTML = '<div style="color: #666; font-style: italic; font-size: 0.9rem;">Sin habilidades detectadas...</div>';
+            container.innerHTML = '<div style="color: #666; font-style: italic; font-size: 0.9rem; grid-column: 1/-1;">Sin habilidades detectadas...</div>';
             return;
         }
 
         skills.forEach(s => {
-            const row = document.createElement('div');
             const rank = s.ref_tag || 'F';
             const rankClass = `rank-${rank.toLowerCase()}`;
-            // Use CSS class .skill-row instead of inline styles for cleaner override
-            row.className = `skill-row ${rankClass}`;
-            row.innerHTML = `
-                <div>
-                    <span style="font-weight: bold; margin-right: 0.5rem;">[${rank}]</span>
-                    <span style="color: #eee;">${s.name}</span>
-                </div>
-                <span style="color: #888; font-size: 0.8rem;">${s.description || ''}</span>
+
+            const card = document.createElement('div');
+            card.className = `tag-card ${rankClass}`;
+            card.title = s.description || "Sin descripción"; // Tooltip on hover
+
+            card.innerHTML = `
+                <div class="tag-rank">${rank}</div>
+                <div class="tag-name">${s.name}</div>
             `;
-            container.appendChild(row);
+            container.appendChild(card);
         });
     }
 

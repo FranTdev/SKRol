@@ -673,6 +673,7 @@ select:focus {
     }
 }
 
+/* Legacy row style */
 .skill-row {
     padding: 0.5rem;
     background: rgba(20, 20, 20, 0.6);
@@ -682,6 +683,79 @@ select:focus {
     align-items: center;
     margin-bottom: 0.3rem;
     transition: 0.3s;
+}
+
+/* New Square Grid Style for Shining Tags */
+.tags-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.5rem;
+}
+
+.tag-card {
+    background: rgba(10, 10, 10, 0.8);
+    border: 1px solid #333;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 4px;
+    position: relative;
+    font-size: 0.8rem;
+    cursor: help;
+    transition: 0.2s;
+    overflow: hidden;
+}
+
+.tag-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    background: rgba(30, 30, 30, 0.9);
+}
+
+.tag-card .tag-rank {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.2rem;
+    font-family: 'Metamorphous', cursive;
+}
+
+.tag-card .tag-name {
+    color: #ddd;
+    line-height: 1.1;
+    max-height: 2.2em;
+    /* Limit lines */
+    overflow: hidden;
+}
+
+/* Rank Coloring for Cards */
+.tag-card.rank-s {
+    border-color: #FFD700;
+    color: #FFD700;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(0, 0, 0, 0.8));
+}
+
+.tag-card.rank-a {
+    border-color: var(--rank-a);
+    color: var(--rank-a);
+}
+
+.tag-card.rank-b {
+    border-color: var(--rank-b);
+    color: var(--rank-b);
+}
+
+.tag-card.rank-c {
+    border-color: var(--rank-c);
+    color: var(--rank-c);
+}
+
+.tag-card.rank-d {
+    border-color: var(--rank-d);
+    color: var(--rank-d);
 }
 
 .rank-a {
@@ -780,4 +854,6 @@ button:disabled {
     cursor: not-allowed;
     text-shadow: none !important;
     box-shadow: none !important;
-}
+}. a d m i n - o n l y  
+   d i s p l a y :   n o n e ;    
+ 

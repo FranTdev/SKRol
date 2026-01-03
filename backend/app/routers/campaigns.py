@@ -114,6 +114,7 @@ def update_campaign_settings(campaign_id: str, settings_data: dict, requester_id
             "default_char_limit",
             "abilities_config",
             "item_pool",
+            "manual_url",
         ]
         clean_settings = {k: v for k, v in settings_data.items() if k in valid_fields}
 

@@ -103,12 +103,68 @@ def generate_shining_abilities(settings: Dict) -> Optional[List[Dict]]:
     tag_list = []
     pl = power_level(max_pl)
 
-    while pl > 0:
-        tag = tag_maker(config)
-        tag = tag_module(tag, tag_list, pl)
-        if tag_checker(tag, tag_list, pl):
-            tag_list.append(tag)
-            pl -= tag[0]
+    MAX_SKILLS = 50
+
+    # OPTIMIZATION: Create a "deck" of all possible valid tags (category 1-10, index 1-10)
+    # This prevents the "Coupon Collector Problem" entirely.
+    deck = []
+    for c in range(1, 11):
+        for i in range(1, 11):
+            deck.append((c, i))
+
+    random.shuffle(deck)  # Shuffle once
+
+    deck_idx = 0
+
+    while pl > 0 and len(tag_list) < MAX_SKILLS and deck_idx < len(deck):
+        # Pick next unique tag from deck
+        cat, idx = deck[deck_idx]
+        deck_idx += 1
+
+        # Determine rank based on cost (try high rank first, then fit to PL)
+        # Original logic had random ranks. Let's roll a rank preferred by logic
+        rank_roll = random.randint(1, 100)
+
+        # Simplified rank selection that favors fitting the PL
+        # Ranks: S=18, A=12, B=8, C=4, D=1
+        cost = 1
+        if pl >= 18 and rank_roll <= 5:
+            cost = 18  # 5% chance for S if affordable
+        elif pl >= 12 and rank_roll <= 20:
+            cost = 12  # 15% chance for A
+        elif pl >= 8 and rank_roll <= 50:
+            cost = 8  # 30% chance for B
+        elif pl >= 4 and rank_roll <= 90:
+            cost = 4  # 40% chance for C
+        else:
+            cost = 1  # Remainder D
+
+        # Double check it fits (redundant but safe)
+        if cost > pl:
+            # Downgrade to max possible
+            if pl >= 12:
+                cost = 12
+            elif pl >= 8:
+                cost = 8
+            elif pl >= 4:
+                cost = 4
+            else:
+                cost = 1
+
+        # If even D (1) is too expensive (pl=0), loop terminates via while condition
+        if cost > pl:
+            break
+
+        # Check tag module logic (linking to previous tag) - simplified for performance
+        # The original `tag_module` force-changed the category to match the last one under some conditions.
+        # But since we are iterating a unique deck, forcing a change might create duplicates.
+        # For performance/stability, we skip the `tag_module` recursive linking here
+        # OR we accept the random deck pull as-is which is cleaner.
+        # We will stick to the deck pull as it guarantees uniqueness and is fast.
+
+        tag = [cost, cat, idx]
+        tag_list.append(tag)
+        pl -= cost
 
     tag_list = order_tags(tag_list)
     return [convert_tag(t, config) for t in tag_list]

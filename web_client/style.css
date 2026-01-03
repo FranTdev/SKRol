@@ -446,6 +446,39 @@ select:focus {
     }
 }
 
+.char-card.pending-death {
+    border-top-color: #ff9800 !important;
+    background: linear-gradient(135deg, #1a1000 0%, #000 100%);
+    animation: death-rattle 3s infinite alternate;
+}
+
+.char-card.pending-death::before {
+    content: "FINAL PENDIENTE";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    font-size: 1.5rem;
+    opacity: 0.15;
+    letter-spacing: 5px;
+    font-weight: 900;
+    color: #ff9800;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+@keyframes death-rattle {
+    from {
+        box-shadow: 0 0 15px rgba(255, 152, 0, 0.1);
+        border-color: #553300;
+    }
+
+    to {
+        box-shadow: 0 0 25px rgba(255, 152, 0, 0.3);
+        border-color: #ff9800;
+    }
+}
+
 /* --- Detailed Sheet --- */
 .detailed-sheet {
     display: none;
@@ -513,11 +546,65 @@ select:focus {
     gap: 1rem;
 }
 
+/* Drag & Drop Stats */
+.stat-box.draggable {
+    cursor: grab;
+    position: relative;
+    user-select: none;
+}
+
+.stat-box.draggable:active {
+    cursor: grabbing;
+}
+
+.stat-box.dragging {
+    opacity: 0.5;
+    border: 1px dashed var(--accent-color);
+    background: rgba(140, 28, 28, 0.1);
+    transform: scale(0.95);
+}
+
+.stat-box.over {
+    border: 2px solid var(--accent-color);
+    box-shadow: 0 0 15px var(--accent-color);
+    transform: scale(1.02);
+}
+
 .inventory-card {
     background: rgba(10, 10, 10, 0.8);
     border: 1px solid #1a1a1a;
     padding: 1rem;
     border-radius: 2px;
+}
+
+/* Drag & Drop Sections */
+.sheet-section {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.drag-handle {
+    user-select: none;
+    cursor: move;
+    opacity: 0.5;
+    transition: 0.3s;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.drag-handle:hover {
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+.sheet-section.dragging {
+    opacity: 0.4;
+    transform: scale(0.98);
+    border: 1px dashed var(--accent-color);
+}
+
+.sheet-section.over {
+    border-top: 3px solid var(--accent-color) !important;
+    background: rgba(140, 28, 28, 0.05);
 }
 
 .item-grid {
@@ -566,8 +653,35 @@ select:focus {
 
 /* --- Ranks --- */
 .rank-s {
-    color: var(--rank-s) !important;
-    text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+    color: #FFD700 !important;
+    text-shadow:
+        0 0 10px rgba(255, 215, 0, 0.8),
+        0 0 20px rgba(255, 215, 0, 0.5);
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 215, 0, 0.1) 50%, rgba(255, 215, 0, 0.05) 100%) !important;
+    border: 1px solid rgba(255, 215, 0, 0.3) !important;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+    animation: divine-glow 3s infinite alternate;
+}
+
+@keyframes divine-glow {
+    from {
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.1);
+    }
+
+    to {
+        box-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
+    }
+}
+
+.skill-row {
+    padding: 0.5rem;
+    background: rgba(20, 20, 20, 0.6);
+    border-left: 3px solid currentColor;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+    transition: 0.3s;
 }
 
 .rank-a {
@@ -655,4 +769,15 @@ select:focus {
         padding: 1rem;
         font-size: 0.75rem;
     }
+}
+
+/* Disabled Button Overrides to ensure gray appearance */
+button:disabled {
+    opacity: 0.5;
+    background-color: #333 !important;
+    border-color: #444 !important;
+    color: #888 !important;
+    cursor: not-allowed;
+    text-shadow: none !important;
+    box-shadow: none !important;
 }

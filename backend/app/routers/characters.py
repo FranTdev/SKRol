@@ -22,6 +22,8 @@ def create_character(character: CharacterCreate):
             "user_id": character.user_id,
             "description": character.description,
             "stats": character.stats,
+            "stats_order": character.stats_order,
+            "sections_order": character.sections_order,
         }
 
         response = db.table("characters").insert(char_payload).execute()
@@ -89,7 +91,15 @@ def update_character(
                 )
 
         # 2. Update character table
-        valid_fields = ["name", "description", "stats", "user_id"]
+        valid_fields = [
+            "name",
+            "description",
+            "stats",
+            "condition",
+            "user_id",
+            "stats_order",
+            "sections_order",
+        ]
         clean_data = {k: v for k, v in character_data.items() if k in valid_fields}
 
         # If data is same, update might return empty or same row
@@ -211,48 +221,63 @@ def generate_shining(character_id: str, requester_id: str):
 
         abilities = shining_service.generate_shining_abilities(settings)
 
-        if abilities is None:
+        if not abilities:
             return {"message": "No tienes resplandor", "skills": []}
 
         # Clear old associations
         db.table("character_skills").delete().eq("character_id", character_id).execute()
 
+        # OPTIMIZATION: Bulk process skill definitions to avoid N+1 queries
+        generated_names = [s["tag"] for s in abilities]
+
+        # 1. Fetch ALL existing definitions for this campaign that match generated names
+        # Supabase 'in' filter format: .in_("col", [list])
+        existing_defs_resp = (
+            db.table("skills_def")
+            .select("id, name")
+            .eq("campaign_id", campaign_id)
+            .in_("name", generated_names)
+            .execute()
+        )
+
+        existing_map = {row["name"]: row["id"] for row in existing_defs_resp.data}
+
+        # 2. Identify missing skills
+        new_skills_to_insert = []
+        # Use a set to track already queued names to avoid duplicates within the insert batch
+        queued_names = set()
+
+        for skill in abilities:
+            s_name = skill["tag"]
+            if s_name not in existing_map and s_name not in queued_names:
+                new_skills_to_insert.append(
+                    {
+                        "campaign_id": campaign_id,
+                        "name": s_name,
+                        "description": skill["effect"],
+                        "ref_tag": skill["rank"],
+                        "is_active": True,
+                    }
+                )
+                queued_names.add(s_name)
+
+        # 3. Bulk Insert Missing Skills
+        if new_skills_to_insert:
+            new_defs_resp = (
+                db.table("skills_def").insert(new_skills_to_insert).execute()
+            )
+            # Update map with new IDs
+            for row in new_defs_resp.data:
+                existing_map[row["name"]] = row["id"]
+
+        # 4. Prepare Links
         character_skills_links = []
         for skill in abilities:
-            skill_name = skill["tag"]
-            skill_desc = skill["effect"]
-            skill_rank = skill["rank"]
-
-            # Find or Create skill definition
-            def_resp = (
-                db.table("skills_def")
-                .select("id")
-                .eq("campaign_id", campaign_id)
-                .eq("name", skill_name)
-                .execute()
-            )
-
-            if def_resp.data:
-                skill_def_id = def_resp.data[0]["id"]
-            else:
-                new_def = (
-                    db.table("skills_def")
-                    .insert(
-                        {
-                            "campaign_id": campaign_id,
-                            "name": skill_name,
-                            "description": skill_desc,
-                            "ref_tag": skill_rank,
-                            "is_active": True,
-                        }
-                    )
-                    .execute()
+            skill_def_id = existing_map.get(skill["tag"])
+            if skill_def_id:
+                character_skills_links.append(
+                    {"character_id": character_id, "skill_def_id": skill_def_id}
                 )
-                skill_def_id = new_def.data[0]["id"]
-
-            character_skills_links.append(
-                {"character_id": character_id, "skill_def_id": skill_def_id}
-            )
 
         # Bulk Associate
         if character_skills_links:

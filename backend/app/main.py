@@ -24,3 +24,6 @@ app.include_router(characters.router, prefix="/characters", tags=["Personajes"])
 @app.get("/")
 def read_root():
     return {"message": "El servidor del RPG está funcionando. Todo sirve al Haz."}
+
+
+# Force Reload Ref

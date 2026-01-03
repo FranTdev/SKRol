@@ -107,6 +107,9 @@ class CharacterCreate(BaseModel):
     user_id: Optional[str] = None
     description: Optional[str] = None
     stats: Dict = {}
+    condition: Optional[Dict] = {}
+    stats_order: List[str] = []
+    sections_order: List[str] = []
 
 
 class Character(CharacterCreate):

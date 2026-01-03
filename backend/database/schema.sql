@@ -42,6 +42,7 @@ CREATE TABLE campaign_rules (
     max_power INTEGER DEFAULT 50,
     default_char_limit INTEGER DEFAULT 3,
     abilities_config JSONB DEFAULT '[]'::jsonb,
+    item_pool JSONB DEFAULT '[]'::jsonb,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 

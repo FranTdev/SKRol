@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Global state
     let participants = [];
+    let campaignItemPool = [];
 
     // --- NAVIGATION ---
     window.showTab = (tabId) => {
@@ -42,15 +43,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     async function fetchCampaignSettings() {
-        if (!window.isAdmin) return;
         try {
             const response = await fetch(`http://127.0.0.1:8000/campaigns/${campaignId}/settings`);
             const settings = await response.json();
 
-            document.getElementById('campaign-rules-input').value = settings.rules || "";
-            document.getElementById('shining-prob-input').value = settings.shining_prob || 1.0;
-            document.getElementById('max-power-input').value = settings.max_power || 50;
-            document.getElementById('global-char-limit-input').value = settings.default_char_limit || 3;
+            const rulesInput = document.getElementById('campaign-rules-input');
+            if (rulesInput) {
+                rulesInput.value = settings.rules || "";
+                document.getElementById('shining-prob-input').value = settings.shining_prob || 1.0;
+                document.getElementById('max-power-input').value = settings.max_power || 50;
+                document.getElementById('global-char-limit-input').value = settings.default_char_limit || 3;
+            }
+
+            campaignItemPool = settings.item_pool || [];
+            renderCampaignItemPool();
         } catch (e) { console.error(e); }
     }
 
@@ -60,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
             shining_prob: parseFloat(document.getElementById('shining-prob-input').value),
             max_power: parseInt(document.getElementById('max-power-input').value),
             default_char_limit: parseInt(document.getElementById('global-char-limit-input').value),
+            item_pool: campaignItemPool
         };
 
         try {
@@ -430,7 +437,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // INIT
-    fetchCampaignInfo();
+    fetchCampaignInfo().then(() => {
+        fetchCampaignSettings();
+    });
     fetchParticipants(); // Needed for character select
 
     // --- DETAILED SHEET LOGIC ---
@@ -605,15 +614,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         skills.forEach(s => {
             const row = document.createElement('div');
-            const rankClass = `rank-${s.rank.toLowerCase()}`;
+            const rank = s.ref_tag || 'F';
+            const rankClass = `rank-${rank.toLowerCase()}`;
             row.style = "padding: 0.5rem; background: rgba(20, 20, 20, 0.6); border-left: 3px solid currentColor; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;";
             row.className = rankClass;
             row.innerHTML = `
                 <div>
-                    <span style="font-weight: bold; margin-right: 0.5rem;">[${s.rank}]</span>
-                    <span style="color: #eee;">${s.tag}</span>
+                    <span style="font-weight: bold; margin-right: 0.5rem;">[${rank}]</span>
+                    <span style="color: #eee;">${s.name}</span>
                 </div>
-                <span style="color: #888; font-size: 0.8rem;">${s.effect}</span>
+                <span style="color: #888; font-size: 0.8rem;">${s.description || ''}</span>
             `;
             container.appendChild(row);
         });
@@ -621,17 +631,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderItems() {
         const items = currentChar.inventory || [];
-        const list = document.getElementById('item-list');
-        list.innerHTML = '';
+        const container = document.getElementById('item-list');
+        container.innerHTML = '';
+
+        if (items.length === 0) {
+            container.innerHTML = '<div style="color: #666; font-style: italic; font-size: 0.9rem; grid-column: 1/-1;">El zurrón está vacío...</div>';
+            return;
+        }
+
         items.forEach((item, idx) => {
-            const row = document.createElement('div');
-            row.className = 'item-row';
-            row.innerHTML = `
-                <span>${item.name}</span>
-                <span style="color: #666; font-size: 0.8rem;">${item.desc || ''}</span>
-                <button onclick="removeItem(${idx})" class="btn btn-small" style="padding: 0.1rem 0.4rem; border-color: #333;">x</button>
+            const card = document.createElement('div');
+            card.className = 'inventory-card';
+            const name = item.item_name || item.name;
+            const desc = item.description || item.desc || 'Sin descripción.';
+            const formula = item.damage_dice || item.formula;
+
+            card.innerHTML = `
+                <div class="item-quantity">x${item.quantity || 1}</div>
+                <div style="font-weight: bold; color: var(--accent); margin-bottom: 0.3rem; font-size: 1.1rem;">${name}</div>
+                <div style="color: #bbb; size: 0.85rem; line-height: 1.2; height: 3.6em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
+                    ${desc}
+                </div>
+                ${formula ? `<div class="item-formula">${formula}</div>` : ''}
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end;">
+                    <button onclick="editItem(${idx})" class="btn btn-small" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; border-color: #555;">Editar</button>
+                    <button onclick="removeItem(${idx})" class="btn btn-small" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; color: #f44; border-color: #600;">Eliminar</button>
+                </div>
             `;
-            list.appendChild(row);
+            container.appendChild(card);
         });
     }
 
@@ -669,28 +696,71 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn && !window.isAdmin) btn.disabled = true;
     };
 
-    window.addItem = () => {
-        const name = prompt("Nombre del ítem:");
-        if (!name) return;
-        const desc = prompt("Descripción:");
+    window.openItemModal = (idx = null) => {
+        const form = document.getElementById('item-form');
+        form.reset();
+        document.getElementById('item-index').value = idx !== null ? idx : "";
+        document.getElementById('item-modal-title').textContent = idx !== null ? "EDITAR OBJETO" : "NUEVO OBJETO";
+
+        if (idx !== null) {
+            const item = currentChar.inventory[idx];
+            document.getElementById('item-name').value = item.name;
+            document.getElementById('item-quantity').value = item.quantity || 1;
+            document.getElementById('item-formula').value = item.formula || "";
+            document.getElementById('item-description').value = item.desc || "";
+        }
+
+        document.getElementById('item-modal').style.display = 'flex';
+    };
+
+    window.saveItem = (e) => {
+        e.preventDefault();
+        const idx = document.getElementById('item-index').value;
+        const newItem = {
+            name: document.getElementById('item-name').value,
+            quantity: parseInt(document.getElementById('item-quantity').value) || 1,
+            formula: document.getElementById('item-formula').value,
+            desc: document.getElementById('item-description').value
+        };
+
         if (!currentChar.inventory) currentChar.inventory = [];
-        currentChar.inventory.push({ name, desc });
+
+        if (idx !== "") {
+            currentChar.inventory[idx] = newItem;
+        } else {
+            currentChar.inventory.push(newItem);
+        }
+
+        closeModal('item-modal');
         renderItems();
+        // We save the whole sheet to persist inventory changes
+        saveSheetData();
+    };
+
+    window.editItem = (idx) => {
+        openItemModal(idx);
     };
 
     window.removeItem = (idx) => {
+        if (!confirm("¿Seguro que quieres perder este objeto en el vacío?")) return;
         currentChar.inventory.splice(idx, 1);
         renderItems();
+        saveSheetData();
     };
 
     window.saveSheetData = async () => {
         if (!currentChar) return;
 
-        // CLEAN DATA: Remove 'users' join object before sending to backend
-        // to avoid database errors with unexpected payload fields
+        const saveBtn = document.getElementById('save-all-btn');
+        const originalText = saveBtn ? saveBtn.innerHTML : "Guardar Cambios";
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = "🌀 Guardando...";
+        }
+
         const payload = { ...currentChar };
         delete payload.users;
-
+        // The inventory is already in currentChar, so it's included in payload
         payload.description = document.getElementById('sheet-desc').value;
 
         try {
@@ -699,17 +769,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+
             if (response.ok) {
-                alert("Hoja guardada en el Haz.");
-                // Update local currentChar to reflect saved description
-                currentChar.description = payload.description;
+                const updatedChar = await response.json();
+                currentChar = updatedChar; // Sync local state with server
+                console.log("Hoja sincronizada:", currentChar);
+
+                if (saveBtn) {
+                    saveBtn.innerHTML = "✅ Guardado";
+                    setTimeout(() => {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = originalText;
+                    }, 2000);
+                }
+
+                renderStats();
+                renderItems();
+                renderSkills();
             } else {
                 const err = await response.json();
-                alert("Error al guardar: " + (err.detail || "Error desconocido"));
+                alert("Error al guardar en el Haz: " + (err.detail || "Error desconocido"));
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalText;
+                }
             }
         } catch (e) {
             console.error(e);
-            alert("No se pudo conectar con el servidor.");
+            alert("El Haz está agitado... No se pudo conectar con el servidor.");
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            }
         }
     };
 
@@ -773,6 +864,135 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(e);
             alert("El Haz está turbulento. Intenta más tarde.");
         }
+    };
+
+    // --- CAMPAIGN ITEM POOL MANAGEMENT ---
+    function renderCampaignItemPool() {
+        const container = document.getElementById('campaign-item-pool-list');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (campaignItemPool.length === 0) {
+            container.innerHTML = '<p style="color: #666; font-style: italic; grid-column: 1/-1;">El banco está vacío. El Maestro aún no ha forjado equipo global.</p>';
+            return;
+        }
+
+        campaignItemPool.forEach((item, idx) => {
+            const card = document.createElement('div');
+            card.className = 'inventory-card';
+            card.innerHTML = `
+                <div style="font-weight: bold; color: #d4a017; margin-bottom: 0.3rem;">${item.name}</div>
+                <div style="color: #888; font-size: 0.8rem; height: 3em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                    ${item.desc || 'Sin descripción.'}
+                </div>
+                ${item.formula ? `<div class="item-formula">${item.formula}</div>` : ''}
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end;">
+                    <button onclick="editPoolItem(${idx})" class="btn btn-small" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; border-color: #555;">Editar</button>
+                    <button onclick="removePoolItem(${idx})" class="btn btn-small" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; color: #f44; border-color: #600;">Eliminar</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    window.openPoolItemModal = (idx = null) => {
+        // Reuse the item-modal but for the pool
+        const form = document.getElementById('item-form');
+        form.reset();
+        document.getElementById('item-index').value = idx !== null ? `pool_${idx}` : "pool_new";
+        document.getElementById('item-modal-title').textContent = idx !== null ? "EDITAR DEL BANCO" : "NUEVO AL BANCO";
+
+        // Hide "Import from pool" button when managing the pool itself
+        document.querySelector('#item-modal button[onclick="openPoolSelector()"]').style.display = 'none';
+
+        if (idx !== null) {
+            const item = campaignItemPool[idx];
+            document.getElementById('item-name').value = item.name;
+            document.getElementById('item-quantity').value = item.quantity || 1;
+            document.getElementById('item-formula').value = item.formula || "";
+            document.getElementById('item-description').value = item.desc || "";
+        }
+
+        document.getElementById('item-modal').style.display = 'flex';
+    };
+
+    window.editPoolItem = (idx) => openPoolItemModal(idx);
+
+    window.removePoolItem = (idx) => {
+        if (!confirm("¿Deseas retirar este objeto del banco global?")) return;
+        campaignItemPool.splice(idx, 1);
+        renderCampaignItemPool();
+        saveCampaignGeneralSettings();
+    };
+
+    // --- POOL SELECTOR FOR CHARACTERS ---
+    window.openPoolSelector = () => {
+        const list = document.getElementById('pool-selector-list');
+        list.innerHTML = '';
+
+        if (campaignItemPool.length === 0) {
+            list.innerHTML = '<p style="color: #888; font-style: italic; grid-column: 1/-1; text-align: center; padding: 2rem;">El banco está vacío. El Maestro no ha creado tesoros globales aún.</p>';
+        } else {
+            campaignItemPool.forEach((item, idx) => {
+                const card = document.createElement('div');
+                card.className = 'inventory-card';
+                card.style.cursor = 'pointer';
+                card.onclick = () => importFromPool(idx);
+                card.innerHTML = `
+                    <div style="font-weight: bold; color: #d4a017; font-size: 1rem;">${item.name}</div>
+                    <div style="color: #777; font-size: 0.75rem; margin-top: 4px;">${item.desc ? item.desc.substring(0, 60) + '...' : ''}</div>
+                    ${item.formula ? `<div class="item-formula" style="font-size: 0.6rem;">${item.formula}</div>` : ''}
+                `;
+                list.appendChild(card);
+            });
+        }
+        document.getElementById('pool-selector-modal').style.display = 'flex';
+    };
+
+    function importFromPool(idx) {
+        const item = campaignItemPool[idx];
+        document.getElementById('item-name').value = item.name;
+        document.getElementById('item-quantity').value = item.quantity || 1;
+        document.getElementById('item-formula').value = item.formula || "";
+        document.getElementById('item-description').value = item.desc || "";
+        closeModal('pool-selector-modal');
+    }
+
+    // Adjust saveItem to handle pool vs character
+    const originalSaveItem = window.saveItem;
+    window.saveItem = (e) => {
+        const idxVal = document.getElementById('item-index').value;
+        if (idxVal.startsWith('pool_')) {
+            e.preventDefault();
+            const realIdx = idxVal.split('_')[1];
+            const newItem = {
+                name: document.getElementById('item-name').value,
+                quantity: parseInt(document.getElementById('item-quantity').value) || 1,
+                formula: document.getElementById('item-formula').value,
+                desc: document.getElementById('item-description').value
+            };
+
+            if (realIdx === 'new') {
+                campaignItemPool.push(newItem);
+            } else {
+                campaignItemPool[realIdx] = newItem;
+            }
+
+            closeModal('item-modal');
+            renderCampaignItemPool();
+            saveCampaignGeneralSettings();
+            return;
+        }
+        // Restore visibility of "Import" button for regular usage
+        document.querySelector('#item-modal button[onclick="openPoolSelector()"]').style.display = 'block';
+        originalSaveItem(e);
+    };
+
+    // Need to fix openItemModal (regular one) to ensure button is visible
+    const originalOpenItemModal = window.openItemModal;
+    window.openItemModal = (idx = null) => {
+        document.querySelector('#item-modal button[onclick="openPoolSelector()"]').style.display = 'block';
+        originalOpenItemModal(idx);
     };
 
 });

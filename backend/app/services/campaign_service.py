@@ -42,78 +42,43 @@ def get_user_campaigns_orchestrated(user_id: str):
 
 
 def update_participant_limit(campaign_id: str, user_id: str, limit: int):
-    try:
-        response = (
-            db.table("campaign_participants")
-            .update({"char_limit": limit})
-            .eq("campaign_id", campaign_id)
-            .eq("user_id", user_id)
-            .execute()
-        )
-        return response.data[0]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """
+    NOTE: The new schema does not have per-participant char_limit.
+    This function is kept for API compatibility but currently does nothing
+    as the robust schema moved character limits to global campaign_rules.
+    """
+    # For now, we just return success to avoid breaking the frontend
+    # but we should eventually update the frontend to not call this.
+    return {"message": "Individual limit not supported in robust schema"}
 
 
 def get_participants_with_limits(campaign_id: str):
     if db is None:
         raise HTTPException(status_code=503, detail="Database not connected")
 
-    # Priority 1: Usernames + char_limit (Perfect)
     try:
-        response = (
-            db.table("campaign_participants")
-            .select("user_id, char_limit, users!user_id(username)")
+        # Get global default limit
+        rules_resp = (
+            db.table("campaign_rules")
+            .select("default_char_limit")
             .eq("campaign_id", campaign_id)
             .execute()
         )
-        if response.data:
-            return response.data
-    except Exception as e:
-        print(f"DEBUG: Perfect query fail (likely missing char_limit): {str(e)}")
+        default_limit = 3
+        if rules_resp.data:
+            default_limit = rules_resp.data[0].get("default_char_limit", 3)
 
-    # Priority 2: Usernames only (Fallback if char_limit column is missing)
-    try:
+        # Get participants
         response = (
             db.table("campaign_participants")
-            .select("user_id, users!user_id(username)")
+            .select("user_id, role, users!user_id(username)")
             .eq("campaign_id", campaign_id)
             .execute()
         )
         data = response.data
         for p in data:
-            p["char_limit"] = 3  # Default fallback for the column
+            p["char_limit"] = default_limit  # Use global default for everyone
         return data
     except Exception as e:
-        print(f"DEBUG: Username query fail: {str(e)}")
-
-    # Priority 3: Only IDs + char_limit (Fallback if users join fails)
-    try:
-        response = (
-            db.table("campaign_participants")
-            .select("user_id, char_limit")
-            .eq("campaign_id", campaign_id)
-            .execute()
-        )
-        data = response.data
-        for p in data:
-            p["users"] = {"username": f"Pistolero ({p['user_id'][:8]})"}
-        return data
-    except Exception as e:
-        print(f"DEBUG: Column-only query fail: {str(e)}")
-
-    # Priority 4: Absolute minimum (Only user_id)
-    try:
-        response = (
-            db.table("campaign_participants")
-            .select("user_id")
-            .eq("campaign_id", campaign_id)
-            .execute()
-        )
-        data = response.data
-        for p in data:
-            p["char_limit"] = 3
-            p["users"] = {"username": f"Pistolero ({p['user_id'][:8]})"}
-        return data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Fallo total en el Haz: {str(e)}")
+        print(f"ERROR in get_participants_with_limits: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Fallo en el Haz: {str(e)}")

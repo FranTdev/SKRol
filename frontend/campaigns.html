@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Campañas | Stephen King RPG</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;700&family=Metamorphous&display=swap"
+        rel="stylesheet">
+    <!-- Optimized CSS loaded from style.css -->
+</head>
+
+<body>
+    <button id="logout-btn" class="btn btn-small btn-delete">Cerrar Sesión</button>
+
+    <header>
+        <h1>EL HAZ DE LAS CAMPAÑAS</h1>
+    </header>
+
+    <div class="container">
+        <div class="actions-bar">
+            <h2>Tus Mundos</h2>
+            <button id="create-campaign-btn" class="btn">Crear Nueva Campaña</button>
+        </div>
+
+        <div id="campaign-list" class="campaign-grid">
+            <!-- Las campañas se cargarán aquí dinámicamente -->
+            <div class="loading">Invocando historias...</div>
+        </div>
+    </div>
+
+    <!-- Modal para Nueva Campaña -->
+    <div id="campaign-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-title" style="font-family: 'Metamorphous', cursive; color: var(--accent);">NUEVA CAMPAÑA</h2>
+            <form id="campaign-form">
+                <input type="hidden" id="edit-campaign-id">
+                <div class="form-group">
+                    <label for="campaign-name">Nombre de la Campaña</label>
+                    <input type="text" id="campaign-name" required placeholder="Ej: La Torre Oscura">
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" id="close-modal" class="btn btn-delete">Cancelar</button>
+                    <button type="submit" class="btn">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/campaigns.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Campaña | Stephen King RPG</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;700&family=Metamorphous&display=swap"
+        rel="stylesheet">
+    <!-- Optimized CSS loaded from style.css -->
+</head>
+
+<body>
+    <header>
+        <a href="campaigns.html" class="back-btn">← Mundos</a>
+        <h1 id="campaign-title">Cargando...</h1>
+        <div id="campaign-admin" style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">Cargando admin...</div>
+    </header>
+
+    <nav class="tabs">
+        <button class="tab-btn active" onclick="showTab('resumen')">Resumen</button>
+        <button id="participantes-tab-btn" class="tab-btn" onclick="showTab('participantes')">Participantes</button>
+        <button class="tab-btn" onclick="showTab('personajes')">Personajes</button>
+        <button id="gestion-tab-btn" class="tab-btn admin-only" onclick="showTab('gestion')">Gestión</button>
+        <button class="tab-btn" onclick="showTab('manual')">Manual</button>
+    </nav>
+
+    <div class="container">
+        <!-- Tab: Resumen -->
+        <div id="resumen" class="tab-content active">
+            <div class="card">
+                <h2>Estado del Mundo</h2>
+                <p id="campaign-desc">Esta es tu campaña en el nivel actual del Haz.</p>
+                <div id="campaign-date"></div>
+            </div>
+        </div>
+
+        <!-- Tab: Participantes -->
+        <div id="participantes" class="tab-content">
+            <div class="card">
+                <h2>Invocar Compañeros</h2>
+                <div id="search-panel">
+                    <div class="search-box">
+                        <input type="text" id="user-search-input" placeholder="Buscar por nombre de usuario...">
+                        <button id="search-btn" class="btn">Buscar</button>
+                    </div>
+                </div>
+                <div id="search-results" class="search-results"></div>
+
+                <h3>Círculo Actual</h3>
+                <div id="participant-list" class="participant-list">
+                    <!-- Participantes dinámicos -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Personajes -->
+        <div id="personajes" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2>Hojas de Personaje</h2>
+                <button id="create-char-btn" class="btn">Nuevo Personaje</button>
+            </div>
+            <div id="char-list" class="char-grid">
+                <!-- Personajes dinámicos -->
+            </div>
+        </div>
+
+        <!-- Tab: Manual -->
+        <div id="manual" class="tab-content">
+            <!-- ... existing manual content ... -->
+            <div class="card" style="text-align: center; padding: 3rem;">
+                <h2 style="font-family: 'Metamorphous', cursive; font-size: 2rem;">EL MANUAL DEL HAZ</h2>
+                <p>Todo lo que un pistolero o un maestro necesita saber para sobrevivir.</p>
+                <a href="#" class="btn" style="display: inline-block; margin-top: 2rem; padding: 1rem 2rem;">Abrir
+                    Manual Completo (PDF)</a>
+            </div>
+        </div>
+
+        <!-- Tab: Gestión (Admin Only) -->
+        <div id="gestion" class="tab-content">
+            <div class="card">
+                <h2>Reglas del Mundo</h2>
+                <textarea id="campaign-rules-input"
+                    style="width: 100%; min-height: 100px; background: #111; border: 1px solid #333; color: white; padding: 0.5rem; margin-bottom: 1rem;"
+                    placeholder="Define aquí las reglas generales..."></textarea>
+                <div style="text-align: right;">
+                    <button class="btn btn-small" onclick="saveCampaignGeneralSettings()">Guardar Reglas</button>
+                </div>
+            </div>
+
+
+
+            <div class="card">
+                <h2>Estado del Mundo (Resumen)</h2>
+                <textarea id="campaign-desc-input"
+                    style="width: 100%; min-height: 80px; background: #111; border: 1px solid #333; color: white; padding: 0.5rem; margin-bottom: 1rem;"
+                    placeholder="Describe el estado actual del mundo para tus jugadores..."></textarea>
+                <div style="text-align: right;">
+                    <button class="btn btn-small" onclick="saveCampaignDescription()">Actualizar Estado</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Configuración del Manual</h2>
+                <label style="display: block; color: #888; font-size: 0.8rem; margin-bottom: 0.5rem;">URL DEL PDF DEL
+                    MANUAL</label>
+                <input type="text" id="manual-url-input" class="form-row input"
+                    placeholder="https://example.com/manual.pdf">
+                <div style="text-align: right; margin-top: 1rem;">
+                    <button class="btn btn-small" onclick="saveCampaignGeneralSettings()">Guardar URL</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>El Resplandor: Configuración</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+                    <div>
+                        <label
+                            style="display: block; color: #888; font-size: 0.8rem; margin-bottom: 0.5rem;">PROBABILIDAD
+                            (%)</label>
+                        <input type="number" id="shining-prob-input" class="form-row input" style="width: 80px;" min="0"
+                            max="100" step="0.1" value="1.0">
+                    </div>
+                    <div>
+                        <label style="display: block; color: #888; font-size: 0.8rem; margin-bottom: 0.5rem;">LÍMITE DE
+                            PODER BASE</label>
+                        <input type="number" id="max-power-input" class="form-row input" style="width: 80px;" min="1"
+                            max="1000" value="50">
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <button class="btn btn-small" onclick="saveCampaignGeneralSettings()">Guardar Configuración</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Gestión de Pistoleros</h2>
+                <div style="margin-bottom: 2rem; border-bottom: 1px solid #333; padding-bottom: 2rem;">
+                    <label
+                        style="display: block; color: var(--accent); font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: bold;">LÍMITE
+                        GLOBAL DE PERSONAJES POR USUARIO</label>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="number" id="global-char-limit-input" class="form-row input" style="width: 80px;"
+                            min="1" max="50" value="3">
+                        <span style="color: #666; font-size: 0.8rem;">(Se aplica por defecto a todos los nuevos
+                            participantes)</span>
+                        <button class="btn btn-small" style="margin-left: auto;"
+                            onclick="saveCampaignGeneralSettings()">Actualizar Límite Global</button>
+                    </div>
+                </div>
+
+                <p style="color: #888; margin-bottom: 2rem;">Límites personalizados actuales (Sobreescriben el global):
+                </p>
+                <div id="limit-management-list" class="participant-list">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>Banco de Objetos (Global)</h2>
+                    <button class="btn btn-small" onclick="openPoolItemModal()">Añadir al Banco</button>
+                </div>
+                <p style="color: #888; margin-bottom: 1rem;">Catálogo de equipo disponible para todos los pistoleros.
+                </p>
+                <div id="campaign-item-pool-list" class="item-grid">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Personaje (Creación/Edición Básica / Ajustes) -->
+    <div id="char-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="char-modal-title">NUEVO PERSONAJE</h2>
+            <form id="char-form">
+                <input type="hidden" id="char-id">
+                <div class="form-row">
+                    <label>Nombre</label>
+                    <input type="text" id="char-name" required>
+                </div>
+                <div class="form-row admin-only" id="owner-row">
+                    <label>Asignar a Usuario (Dueño)</label>
+                    <select id="char-user-select">
+                        <!-- Cargado dinámicamente con participantes -->
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>Descripción inicial</label>
+                    <textarea id="char-description" rows="3"></textarea>
+                </div>
+                <div id="admin-controls" class="admin-only"
+                    style="margin-top: 1.5rem; border-top: 1px solid #333; padding-top: 1rem; display: none;">
+                    <label style="color: var(--accent); display: block; margin-bottom: 0.5rem;">CONTROLES DEL
+                        MAESTRO</label>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-small" id="kill-btn"
+                            onclick="adminUpdateCondition('muerte')" style="border-color: #900;">Matar</button>
+                        <button type="button" class="btn btn-small" id="revive-btn"
+                            onclick="adminUpdateCondition('vivo')" style="border-color: #090;">Revivir</button>
+                        <button type="button" class="btn btn-small" id="transcend-btn"
+                            onclick="adminUpdateCondition('trascendido')"
+                            style="border-color: #ffeb3b; color: #ffeb3b;">Trascender</button>
+                        <button type="button" class="btn btn-small" onclick="deletePermanent()"
+                            style="border-color: #f44; color: #f44; margin-left: auto;">ELIMINAR PERMANENTE</button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="button" onclick="closeModal('char-modal')" class="btn"
+                        style="border-color: #555; color: #888;">Cerrar</button>
+                    <button type="submit" class="btn">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Detailed Character Sheet -->
+    <div id="detailed-sheet" class="detailed-sheet">
+        <div class="sheet-header">
+            <div>
+                <h2 id="sheet-char-name" style="font-family: 'Metamorphous', cursive; color: var(--accent); margin: 0;">
+                </h2>
+                <div id="sheet-owner" style="font-size: 0.8rem; color: #888;">Controlado por: <span>...</span></div>
+            </div>
+            <button onclick="closeDetailedSheet()" class="btn" style="border-color: #555; color: #888;">Cerrar</button>
+        </div>
+
+        <div id="sheet-sections-container" style="display: flex; flex-direction: column; gap: 1rem;">
+
+            <!-- Section: Description -->
+            <div id="section-description" class="sheet-section card" draggable="true">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="cursor: move;" class="drag-handle">☰ HISTORIA / DESCRIPCIÓN</h3>
+                    <div>
+                        <button id="edit-desc-btn" class="btn btn-small" onclick="toggleEditDesc()">🔨 Editar</button>
+                        <button id="request-death-btn" class="btn btn-small" onclick="requestDeath()"
+                            style="border-color: #666; color: #666;">💀 Solicitar Matar</button>
+                    </div>
+                </div>
+                <textarea id="sheet-desc"
+                    style="width: 100%; background: transparent; border: none; color: #ccc; font-family: inherit; resize: vertical; min-height: 100px; padding: 0.5rem;"
+                    readonly></textarea>
+            </div>
+
+            <!-- Section: Skills -->
+            <div id="section-skills" class="sheet-section card" draggable="true">
+                <h3 style="cursor: move;" class="drag-handle">☰ TAGS / HABILIDADES DEL RESPLANDOR</h3>
+                <div id="sheet-skills" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <!-- Tags here -->
+                </div>
+            </div>
+
+            <!-- Section: Stats -->
+            <div id="section-stats" class="sheet-section" draggable="true">
+                <h3 style="cursor: move; color: #888; font-size: 0.9rem; margin-bottom: 0.5rem;" class="drag-handle">☰
+                    ESTADÍSTICAS</h3>
+                <div class="stats-grid" id="sheet-stats">
+                    <!-- Stats loaded here -->
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button id="roll-stats-btn" onclick="rollRandomStats()" class="btn" style="flex: 1;">Stats
+                        Aleatorios</button>
+                    <button id="roll-shining-btn" onclick="openShiningMachine()" class="btn"
+                        style="flex: 1; border-color: #4a148c; color: #9c27b0;">Máquina del Resplandor</button>
+                </div>
+            </div>
+
+            <!-- Section: Conditions -->
+            <div id="section-conditions" class="sheet-section card" draggable="true">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="cursor: move;" class="drag-handle">☰ Condiciones Académicas y Físicas</h3>
+                    <button onclick="openConditionsModal()" class="btn btn-small"
+                        style="border-color: #ff9800; color: #ff9800;">Ver Todos</button>
+                </div>
+                <div id="quick-conditions" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                    <!-- Short list -->
+                </div>
+            </div>
+
+            <!-- Section: Inventory -->
+            <div id="section-inventory" class="sheet-section inventory-section" draggable="true">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 2px solid #333; padding-bottom: 0.5rem;">
+                    <h3 style="margin: 0; color: #aaa; cursor: move;" class="drag-handle">☰ INVENTARIO Y EQUIPAMIENTO
+                    </h3>
+                    <button onclick="openItemModal()" class="btn btn-small">Añadir Ítem</button>
+                </div>
+                <div id="item-list" class="item-grid">
+                    <!-- Items here -->
+                </div>
+            </div>
+
+        </div>
+
+        <div style="margin-top: 3rem; text-align: right;">
+            <button onclick="saveSheetData()" class="btn" id="save-all-btn">Guardar Cambios</button>
+        </div>
+    </div>
+
+    <!-- Modals for Shining Machine (Simulated) -->
+    <div id="shining-machine-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+            <h2 style="color: #9c27b0;">EL RESPLANDOR</h2>
+            <div id="shining-results" style="margin-top: 1rem;">
+                <!-- Results from index.js logic -->
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #333;">Rango</th>
+                            <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #333;">Habilidad</th>
+                            <th style="padding: 0.5rem; text-align: left; border-bottom: 1px solid #333;">Efecto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="shining-list"></tbody>
+                </table>
+            </div>
+            <div style="margin-top: 2rem; text-align: right;">
+                <button onclick="closeModal('shining-machine-modal')" class="btn">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Conditions -->
+    <div id="conditions-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <h2 style="color: #ff9800;">ESTADO DEL PISTOLERO</h2>
+            <div id="conditions-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.8rem;">
+                <!-- Detailed conditions list -->
+            </div>
+            <div style="margin-top: 2rem; text-align: right;">
+                <button onclick="closeModal('conditions-modal')" class="btn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Item Management -->
+    <div id="item-modal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 id="item-modal-title"
+                    style="color: var(--accent); font-family: 'Metamorphous', cursive; margin: 0;">GESTIÓN DE OBJETO
+                </h2>
+                <button type="button" class="btn btn-small" onclick="openPoolSelector()"
+                    style="border-color: #d4a017; color: #d4a017;">Importar del Banco</button>
+            </div>
+            <form id="item-form" onsubmit="saveItem(event)">
+                <input type="hidden" id="item-index">
+                <div class="form-row">
+                    <label>Nombre del Ítem</label>
+                    <input type="text" id="item-name" required placeholder="Ejem: Colt Peacemaker">
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <div class="form-row" style="flex: 1;">
+                        <label>Cantidad</label>
+                        <input type="number" id="item-quantity" value="1" min="0">
+                    </div>
+                    <div class="form-row" style="flex: 2;">
+                        <label>Fórmula (Dados/Gameplay)</label>
+                        <input type="text" id="item-formula" placeholder="Ejem: 2d6 + 4">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>Descripción / Efectos</label>
+                    <textarea id="item-description" rows="4"
+                        placeholder="Describe sus propiedades físicas o mágicas..."></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" onclick="closeModal('item-modal')" class="btn"
+                        style="border-color: #555; color: #888;">Cancelar</button>
+                    <button type="submit" class="btn">Guardar ítem</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Pool Selector -->
+    <div id="pool-selector-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
+            <h2 style="color: #d4a017; font-family: 'Metamorphous', cursive;">BANCO DE OBJETOS</h2>
+            <p style="color: #888; font-size: 0.9rem;">Selecciona un objeto para añadirlo a tu inventario.</p>
+            <div id="pool-selector-list" class="item-grid" style="margin-top: 1rem;">
+                <!-- Items here -->
+            </div>
+            <div style="margin-top: 2rem; text-align: right;">
+                <button onclick="closeModal('pool-selector-modal')" class="btn">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/campaign_dashboard.js"></script>
+</body>
+
+</html>

@@ -1,6 +1,7 @@
 fastapi
 uvicorn
-azure-cosmos
+supabase
 python-dotenv
-passlib[bcrypt]
+requests
 pydantic
+passlib[bcrypt]

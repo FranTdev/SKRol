@@ -85,6 +85,7 @@ def get_campaign_settings(campaign_id: str):
             "max_power": 50,
             "default_char_limit": 3,
             "abilities_config": [],
+            "item_pool": [],
         }
     except Exception as e:
         print(f"ERROR in get_campaign_settings: {str(e)}")
@@ -106,11 +107,20 @@ def update_campaign_settings(campaign_id: str, settings_data: dict, requester_id
                 status_code=403, detail="Solo el Maestro puede modificar las reglas."
             )
 
-        # Upsert logic: attempt update, then insert if not exists
-        # In Supabase-py, we can use upsert or handle manually
+        valid_fields = [
+            "rules",
+            "shining_prob",
+            "max_power",
+            "default_char_limit",
+            "abilities_config",
+            "item_pool",
+            "manual_url",
+        ]
+        clean_settings = {k: v for k, v in settings_data.items() if k in valid_fields}
+
         response = (
             db.table("campaign_rules")
-            .upsert({**settings_data, "campaign_id": campaign_id})
+            .upsert({**clean_settings, "campaign_id": campaign_id})
             .execute()
         )
 

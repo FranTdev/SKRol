@@ -3,15 +3,15 @@ import sys
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-# Add backend directory to path to import app modules if needed,
-# but here we just need raw connection to test schema
-sys.path.append(os.path.join(os.getcwd(), "backend"))
+# Robust path setup for .env
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+# Path to backend .env
+env_path = os.path.join(parent_dir, "backend", ".env")
+load_dotenv(env_path)
 
-# Load environment variables
-load_dotenv(os.path.join(os.getcwd(), "backend", ".env"))
-
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
+url: str = os.getenv("SUPABASE_URL")
+key: str = os.getenv("SUPABASE_KEY")
 
 if not url or not key:
     print("Error: SUPABASE_URL or SUPABASE_KEY not found in backend/.env")

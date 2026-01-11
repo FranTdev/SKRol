@@ -1,5 +1,11 @@
 import sys
 import os
+
+# Robust path setup
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 from backend.app.database import get_db
 
 
@@ -25,5 +31,5 @@ def inspect_settings():
 
 
 if __name__ == "__main__":
-    sys.path.append(os.getcwd())
+    # sys.path handled at top
     inspect_settings()

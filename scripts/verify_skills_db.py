@@ -1,6 +1,12 @@
 import sys
 import os
 import uuid
+
+# Robust path setup
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 from backend.app.database import get_db
 
 
@@ -57,5 +63,5 @@ def verify_db_interaction():
 
 
 if __name__ == "__main__":
-    sys.path.append(os.getcwd())
+    # sys.path handled at top
     verify_db_interaction()

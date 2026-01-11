@@ -1,78 +1,85 @@
-# The Touch Machine - Stephen King RPG Platform
+# El Haz - Plataforma de Rol de Stephen King (SK Rol)
 
-A comprehensive role-playing game management system inspired by the multiverse of Stephen King (The Dark Tower, The Shining, etc.). 
-This platform is designed to facilitate the "Director's" (Game Master) work and enhance the players' experience through a digital interface for campaigns, character sheets, and automated mechanics.
+Este proyecto es una aplicación web integral diseñada para gestionar partidas de rol ambientadas en el vasto multiverso de Stephen King (La Torre Oscura, El Resplandor, It, etc.). 
 
-## 🌌 Features
+El objetivo principal fue crear una herramienta que no solo sirva como hoja de personaje digital, sino que automatice mecánicas complejas como la generación de habilidades psíquicas ("El Resplandor") y la gestión de estados físicos y académicos de los personajes, permitiendo al Director de Juego centrarse en la narrativa.
 
-- **Campaign Management**: Create and manage multiple campaigns ("Worlds").
-- **Dynamic Character Sheets**: Track stats, inventories, and conditions (Physical/Academic).
-- **The Touch Machine**: Automate randomness for unique "Shining" abilities generated procedurally.
-- **Item Pool**: Global database of items that can be imported into any campaign.
-- **Real-time Mechanics**: Backend-validated actions and state management.
+## 🌌 Características Principales
 
-## 🛠️ Technology Stack
+- **Gestión de Mundos (Campañas)**: Sistema centralizado para que el Director administre múltiples campañas simultáneas, controlando participantes y reglas específicas para cada "nivel de la Torre".
+- **The Touch Machine (Máquina del Toque)**: Un algoritmo procedimental que genera habilidades únicas basadas en probabilidades y niveles de poder ("El Resplandor"), asignando rangos (S, A, B, C, D) e impactos narrativos automáticamente.
+- **Hojas de Personaje Vivas**: 
+  - Gestión en tiempo real de inventario y equipamiento.
+  - Sistema de estados (Vivo, Muerto, Trascendido).
+  - Rastreo visual de condiciones (Heridas, Locura, etc.).
+- **Banco de Objetos Global**: Una base de datos de ítems que pueden ser importados a cualquier campaña, facilitando la consistencia entre partidas.
+- **Interfaz Inmersiva**: Diseño UI moderno con estética "Glassmorphism" y tipografías temáticas para mantener la atmósfera de misterio.
 
-- **Backend**: Python (FastAPI)
-- **Database**: Supabase (PostgreSQL + RLS)
-- **Frontend**: Vanilla JS / HTML5 / CSS3 (Glassmorphism UI)
-- **Testing**: Python requests & unittest
+## 🛠️ Stack Tecnológico
 
-## 🚀 Getting Started
+Este proyecto demuestra capacidades Full Stack utilizando tecnologías modernas y ligeras:
 
-### Prerequisites
+- **Backend**: Python con **FastAPI**. Arquitectura RESTful rápida y eficiente.
+- **Base de Datos**: **Supabase** (PostgreSQL) con Row Level Security (RLS) para la gestión segura de datos.
+- **Frontend**: **Vanilla JavaScript**, HTML5 y CSS3 puro. Sin frameworks pesados en el cliente para garantizar un control total sobre el DOM y el rendimiento.
+- **Testing**: Scripts automatizados con `requests` y `unittest` para validar endpoints y lógica de negocio.
 
-- Python 3.9 or higher
-- A Supabase project (for database connection)
+## 🚀 Instalación y Despliegue
 
-### Installation
+### Requisitos Previos
 
-1. **Clone the repository**:
+- Python 3.9 o superior
+- Cuenta en Supabase (para la base de datos)
+
+### Pasos
+
+1. **Clonar el repositorio**:
    ```bash
-   git clone https://github.com/yourusername/sk-rol.git
+   git clone https://github.com/tu-usuario/sk-rol.git
    cd sk-rol
    ```
 
-2. **Install Dependencies**:
+2. **Instalar Dependencias**:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Configuration**:
-   Create a `.env` file in the `backend` directory containing your Supabase credentials:
+3. **Variables de Entorno**:
+   Crea un archivo `.env` en la carpeta `backend/` con tus credenciales:
    ```ini
-   SUPABASE_URL=your_project_url
-   SUPABASE_KEY=your_anon_key
+   SUPABASE_URL=tu_url_de_proyecto
+   SUPABASE_KEY=tu_clave_anonima
    ```
-   *Note: Ensure you have run the migration scripts located in `backend/database/migrations` on your Supabase instance.*
+   *Nota: Asegúrate de ejecutar los scripts SQL ubicados en `backend/database/migrations` en tu consola SQL de Supabase para crear las tablas necesarias.*
 
-### Running the Application
+### Ejecución Local
 
-1. **Start the Backend Server**:
+1. **Levantar el Servidor (Backend)**:
    ```bash
    uvicorn backend.app.main:app --reload
    ```
-   The API will be available at `http://127.0.0.1:8000`.
+   La API estará escuchando en `http://127.0.0.1:8000`.
 
-2. **Launch the Frontend**:
-   Simply open `frontend/index.html` or `frontend/login.html` in your preferred web browser. 
-   *(For best compatibility, use a local server like Live Server in VS Code).*
+2. **Iniciar Cliente (Frontend)**:
+   Abre el archivo `frontend/index.html` o `frontend/login.html` en tu navegador.
+   Recomiendo usar una extensión como "Live Server" en VS Code para evitar problemas de CORS locales.
 
-## 📂 Project Structure
+## 📂 Estructura del Proyecto
 
 ```
 SKRol/
-├── backend/            # API Source Code
-│   ├── app/            # Main application logic (Routers, Models, Services)
-│   └── database/       # Migrations and Schema definitions
-├── frontend/           # Client-side application
-│   ├── css/            # Stylesheets
-│   ├── js/             # Application Logic
-│   └── *.html          # Views
-├── scripts/            # Utility and testing scripts
-└── requirements.txt    # Python dependencies
+├── backend/            # Lógica del servidor y API
+│   ├── app/            # Routers, Modelos y Servicios
+│   └── database/       # Migraciones y esquemas SQL
+├── frontend/           # Cliente Web
+│   ├── css/            # Estilos y temas visuales
+│   ├── js/             # Lógica de cliente (SPA ligera)
+│   └── *.html          # Vistas
+├── scripts/            # Scripts de utilidad, testing y verificación
+└── requirements.txt    # Dependencias de Python
 ```
 
-## 🛡️ License
+## 🛡️ Licencia
 
-This project is for educational and portfolio purposes.
+Proyecto personal desarrollado con fines educativos y de portafolio.
+Inspirado en la obra de Stephen King.
